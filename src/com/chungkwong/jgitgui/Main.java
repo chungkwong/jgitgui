@@ -19,7 +19,7 @@ import javafx.stage.*;
 import javafx.util.*;
 import org.eclipse.jgit.api.*;
 import org.eclipse.jgit.api.errors.*;
-import org.eclipse.jgit.lib.*;
+import org.eclipse.jgit.revwalk.*;
 /**
  *
  * @author Chan Chung Kwong <1m02math@126.com>
@@ -37,14 +37,14 @@ public class Main extends Application{
 		split.setOrientation(Orientation.HORIZONTAL);
 		split.getItems().add(createNavigation());
 		split.getItems().add(content);
-		split.setDividerPosition(0,0.25);
+		split.setDividerPosition(0,0.5);
 		root.setCenter(split);
-
 		root.setBottom(progressBar);
 
-		Scene scene=new Scene(root,300,250);
+		Scene scene=new Scene(root);
 		primaryStage.setTitle("JGitGUI");
 		primaryStage.setScene(scene);
+		primaryStage.setMaximized(true);
 		primaryStage.show();
 	}
 	private MenuBar createMenuBar(){
@@ -60,52 +60,77 @@ public class Main extends Application{
 		fileMenu.getItems().add(cloneItem);
 		return new MenuBar(fileMenu);
 	}
-	private TreeTableView createNavigation(){
+	private BorderPane createNavigation(){
+		BorderPane view=new BorderPane();
 		TreeTableView<Object> nav=new TreeTableView<>(navigationRoot);
 		nav.setShowRoot(false);
-		TreeTableColumn<Object,String> column=new TreeTableColumn<>("Name");
-		column.setCellValueFactory(new Callback<TreeTableColumn.CellDataFeatures<Object, String>,ObservableValue<String>>() {
+		ContextMenu contextMenu=new ContextMenu();
+		nav.setContextMenu(contextMenu);
+		nav.setOnContextMenuRequested((e)->contextMenu.getItems().setAll(((NavigationTreeItem)nav.getSelectionModel().getSelectedItem()).getContextMenuItems()));
+		view.setCenter(nav);
+		view.setBottom(createColumnsChooser(nav));
+		return view;
+	}
+	private FlowPane createColumnsChooser(TreeTableView<Object> nav){
+		FlowPane chooser=new FlowPane();
+		chooser.getChildren().add(createColumnChooser("Name",new Callback<TreeTableColumn.CellDataFeatures<Object, String>,ObservableValue<String>>() {
 			@Override
 			public ObservableValue<String> call(TreeTableColumn.CellDataFeatures<Object,String> p){
 				return new ReadOnlyObjectWrapper<>(p.getValue().toString());
 			}
-		});
-		nav.getColumns().addAll(column);
-		ContextMenu menu=new ContextMenu();
-		MenuItem checkout=new MenuItem("Checkout");
-		checkout.setOnAction((e)->gitCheckout((BranchTreeItem)nav.getSelectionModel().getSelectedItem()));
-		menu.getItems().add(checkout);
-		MenuItem branch=new MenuItem("New branch");
-		branch.setOnAction((e)->gitBranchNew((GitTreeItem)nav.getSelectionModel().getSelectedItem()));
-		menu.getItems().add(branch);
-		MenuItem rmBranch=new MenuItem("Remove branch");
-		rmBranch.setOnAction((e)->gitBranchRemove((BranchTreeItem)nav.getSelectionModel().getSelectedItem()));
-		menu.getItems().add(rmBranch);
-		MenuItem renameBranch=new MenuItem("Rename branch");
-		renameBranch.setOnAction((e)->gitBranchRename((BranchTreeItem)nav.getSelectionModel().getSelectedItem()));
-		menu.getItems().add(renameBranch);
-		menu.getItems().add(new SeparatorMenuItem());
-		nav.setContextMenu(menu);
-		nav.setOnContextMenuRequested((e)->{
-			TreeItem item=nav.getSelectionModel().getSelectedItem();
-			if(item instanceof GitTreeItem){
-				checkout.setDisable(true);
-				branch.setDisable(false);
-				rmBranch.setDisable(true);
-				renameBranch.setDisable(true);
-			}else if(item instanceof BranchTreeItem){
-				checkout.setDisable(false);
-				branch.setDisable(true);
-				rmBranch.setDisable(false);
-				renameBranch.setDisable(false);
-			}else{
-				checkout.setDisable(true);
-				branch.setDisable(true);
-				rmBranch.setDisable(true);
-				renameBranch.setDisable(true);
+		},true,nav));
+		chooser.getChildren().add(createColumnChooser("Message",new Callback<TreeTableColumn.CellDataFeatures<Object, String>,ObservableValue<String>>() {
+			@Override
+			public ObservableValue<String> call(TreeTableColumn.CellDataFeatures<Object,String> p){
+				if(p.getValue() instanceof CommitTreeItem)
+					return new ReadOnlyObjectWrapper<>(((RevCommit)p.getValue().getValue()).getShortMessage());
+				else
+					return new ReadOnlyObjectWrapper<>("");
 			}
+		},false,nav));
+		chooser.getChildren().add(createColumnChooser("Author",new Callback<TreeTableColumn.CellDataFeatures<Object, String>,ObservableValue<String>>() {
+			@Override
+			public ObservableValue<String> call(TreeTableColumn.CellDataFeatures<Object,String> p){
+				if(p.getValue() instanceof CommitTreeItem)
+					return new ReadOnlyObjectWrapper<>(((RevCommit)p.getValue().getValue()).getAuthorIdent().getName());
+				else
+					return new ReadOnlyObjectWrapper<>("");
+			}
+		},false,nav));
+		chooser.getChildren().add(createColumnChooser("Committer",new Callback<TreeTableColumn.CellDataFeatures<Object, String>,ObservableValue<String>>() {
+			@Override
+			public ObservableValue<String> call(TreeTableColumn.CellDataFeatures<Object,String> p){
+				if(p.getValue() instanceof CommitTreeItem)
+					return new ReadOnlyObjectWrapper<>(((RevCommit)p.getValue().getValue()).getCommitterIdent().toExternalString());
+				else
+					return new ReadOnlyObjectWrapper<>("");
+			}
+		},false,nav));
+		chooser.getChildren().add(createColumnChooser("Date",new Callback<TreeTableColumn.CellDataFeatures<Object, String>,ObservableValue<String>>() {
+			@Override
+			public ObservableValue<String> call(TreeTableColumn.CellDataFeatures<Object,String> p){
+				if(p.getValue() instanceof CommitTreeItem)
+					return new ReadOnlyObjectWrapper<>(Integer.toString(((RevCommit)p.getValue().getValue()).getCommitTime()));
+				else
+					return new ReadOnlyObjectWrapper<>("");
+			}
+		},false,nav));
+		return chooser;
+	}
+	private CheckBox createColumnChooser(String name,Callback callback,boolean visible,TreeTableView<Object> nav){
+		TreeTableColumn<Object,String> column=new TreeTableColumn<>(name);
+		column.setCellValueFactory(callback);
+		CheckBox chooser=new CheckBox(name);
+		chooser.setSelected(visible);
+		if(visible)
+			nav.getColumns().add(column);
+		chooser.selectedProperty().addListener((v)->{
+			if(chooser.isSelected())
+				nav.getColumns().add(column);
+			else
+				nav.getColumns().remove(column);
 		});
-		return nav;
+		return chooser;
 	}
 	/**
 	 * @param args the command line arguments
@@ -149,49 +174,6 @@ public class Main extends Application{
 		}catch(GitAPIException ex){
 			Logger.getLogger(Main.class.getName()).log(Level.SEVERE,null,ex);
 			new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
-		}
-	}
-	private void gitCheckout(BranchTreeItem item){
-		try{
-			((Git)item.getParent().getValue()).checkout().setName(((Ref)item.getValue()).getName()).call();
-		}catch(GitAPIException ex){
-			Logger.getLogger(Main.class.getName()).log(Level.SEVERE,null,ex);
-			new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
-		}
-	}
-	private void gitBranchNew(GitTreeItem item){
-		TextInputDialog branchDialog=new TextInputDialog();
-		branchDialog.setTitle("Choose a name for the new branch");
-		branchDialog.setHeaderText("Enter the name of the new branch:");
-		Optional<String> name=branchDialog.showAndWait();
-		if(name.isPresent())
-			try{
-				item.getChildren().add(new BranchTreeItem(((Git)item.getValue()).branchCreate().setName(name.get()).call()));
-			}catch(GitAPIException ex){
-				Logger.getLogger(Main.class.getName()).log(Level.SEVERE,null,ex);
-				new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
-			}
-	}
-	private void gitBranchRename(BranchTreeItem item){
-		TextInputDialog branchDialog=new TextInputDialog();
-		branchDialog.setTitle("Choose a new name for the branch");
-		branchDialog.setHeaderText("Enter the new name of the branch:");
-		Optional<String> name=branchDialog.showAndWait();
-		if(name.isPresent())
-			try{
-				item.setValue(((Git)item.getParent().getValue()).branchRename().setOldName(((Ref)item.getValue()).getName()).setNewName(name.get()).call());
-			}catch(GitAPIException ex){
-				Logger.getLogger(Main.class.getName()).log(Level.SEVERE,null,ex);
-				new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
-			}
-	}
-	private void gitBranchRemove(BranchTreeItem item){
-		try{
-			((Git)item.getParent().getValue()).branchDelete().setBranchNames(((Ref)item.getValue()).getName()).call();
-			item.getParent().getChildren().remove(item);
-		}catch(GitAPIException ex){
-			Logger.getLogger(Main.class.getName()).log(Level.SEVERE,null,ex);
-				new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
 		}
 	}
 }

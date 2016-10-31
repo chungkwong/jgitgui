@@ -10,7 +10,7 @@ import org.eclipse.jgit.api.*;
  *
  * @author Chan Chung Kwong <1m02math@126.com>
  */
-public class StageTreeItem extends TreeItem<Object>{
+public class StageTreeItem extends TreeItem<Object> implements NavigationTreeItem{
 	public StageTreeItem(Git git){
 		super(git);
 	}
@@ -18,5 +18,8 @@ public class StageTreeItem extends TreeItem<Object>{
 	public String toString(){
 		return "Staging area";
 	}
-
+	@Override
+	public MenuItem[] getContextMenuItems(){
+		return new MenuItem[0];
+	}
 }
