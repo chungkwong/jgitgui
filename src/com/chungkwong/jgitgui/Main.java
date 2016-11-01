@@ -6,6 +6,7 @@
 package com.chungkwong.jgitgui;
 
 import java.io.*;
+import java.text.*;
 import java.util.*;
 import java.util.logging.*;
 import javafx.application.*;
@@ -19,6 +20,7 @@ import javafx.stage.*;
 import javafx.util.*;
 import org.eclipse.jgit.api.*;
 import org.eclipse.jgit.api.errors.*;
+import org.eclipse.jgit.lib.*;
 import org.eclipse.jgit.revwalk.*;
 /**
  *
@@ -27,7 +29,6 @@ import org.eclipse.jgit.revwalk.*;
 public class Main extends Application{
 	private final DirectoryChooser dirChooser=new DirectoryChooser();
 	private final TreeItem<Object> navigationRoot=new TreeItem<>();
-	private ProgressBar progressBar=new ProgressBar(1.0);
 	private final StackPane content=new StackPane();
 	@Override
 	public void start(Stage primaryStage){
@@ -39,7 +40,6 @@ public class Main extends Application{
 		split.getItems().add(content);
 		split.setDividerPosition(0,0.5);
 		root.setCenter(split);
-		root.setBottom(progressBar);
 
 		Scene scene=new Scene(root);
 		primaryStage.setTitle("JGitGUI");
@@ -92,7 +92,7 @@ public class Main extends Application{
 			@Override
 			public ObservableValue<String> call(TreeTableColumn.CellDataFeatures<Object,String> p){
 				if(p.getValue() instanceof CommitTreeItem)
-					return new ReadOnlyObjectWrapper<>(((RevCommit)p.getValue().getValue()).getAuthorIdent().getName());
+					return new ReadOnlyObjectWrapper<>(((RevCommit)p.getValue().getValue()).getAuthorIdent().toExternalString());
 				else
 					return new ReadOnlyObjectWrapper<>("");
 			}
@@ -106,16 +106,30 @@ public class Main extends Application{
 					return new ReadOnlyObjectWrapper<>("");
 			}
 		},false,nav));
-		chooser.getChildren().add(createColumnChooser("Date",new Callback<TreeTableColumn.CellDataFeatures<Object, String>,ObservableValue<String>>() {
+		chooser.getChildren().add(createColumnChooser("Time",new Callback<TreeTableColumn.CellDataFeatures<Object, String>,ObservableValue<String>>() {
 			@Override
 			public ObservableValue<String> call(TreeTableColumn.CellDataFeatures<Object,String> p){
 				if(p.getValue() instanceof CommitTreeItem)
-					return new ReadOnlyObjectWrapper<>(Integer.toString(((RevCommit)p.getValue().getValue()).getCommitTime()));
+					return new ReadOnlyObjectWrapper<>(timeToString(((RevCommit)p.getValue().getValue()).getCommitTime()));
 				else
 					return new ReadOnlyObjectWrapper<>("");
 			}
 		},false,nav));
+		chooser.getChildren().add(createColumnChooser("Refernece",new Callback<TreeTableColumn.CellDataFeatures<Object, String>,ObservableValue<String>>() {
+			@Override
+			public ObservableValue<String> call(TreeTableColumn.CellDataFeatures<Object,String> p){
+				if(p.getValue() instanceof TagTreeItem||p.getValue() instanceof BranchTreeItem){
+					ObjectId id=((Ref)p.getValue().getValue()).getLeaf().getObjectId();
+					return new ReadOnlyObjectWrapper<>(id==null?"":id.getName());
+				}else
+					return new ReadOnlyObjectWrapper<>("");
+			}
+		},false,nav));
+
 		return chooser;
+	}
+	private static String timeToString(int time){
+		return DateFormat.getDateTimeInstance().format(new Date(time*1000l));
 	}
 	private CheckBox createColumnChooser(String name,Callback callback,boolean visible,TreeTableView<Object> nav){
 		TreeTableColumn<Object,String> column=new TreeTableColumn<>(name);

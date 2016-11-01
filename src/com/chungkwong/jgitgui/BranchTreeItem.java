@@ -9,6 +9,7 @@ import java.util.logging.*;
 import javafx.scene.control.*;
 import org.eclipse.jgit.api.*;
 import org.eclipse.jgit.api.errors.*;
+import org.eclipse.jgit.errors.*;
 import org.eclipse.jgit.lib.*;
 import org.eclipse.jgit.revwalk.*;
 /**
@@ -27,17 +28,34 @@ public class BranchTreeItem extends TreeItem<Object> implements NavigationTreeIt
 	public MenuItem[] getContextMenuItems(){
 		MenuItem checkout=new MenuItem("Checkout");
 		checkout.setOnAction((e)->gitCheckout());
+		MenuItem revert=new MenuItem("Revert");
+		revert.setOnAction((e)->gitRevert());
+		MenuItem mergeBranch=new MenuItem("Merge");
+		mergeBranch.setOnAction((e)->gitMerge());
 		MenuItem rmBranch=new MenuItem("Remove branch");
 		rmBranch.setOnAction((e)->gitBranchRemove());
 		MenuItem renameBranch=new MenuItem("Rename branch");
 		renameBranch.setOnAction((e)->gitBranchRename());
-		MenuItem revert=new MenuItem("Revert");
-		revert.setOnAction((e)->gitRevert());
-		return new MenuItem[]{checkout,rmBranch,renameBranch,revert};
+		return new MenuItem[]{checkout,revert,mergeBranch,rmBranch,renameBranch};
+	}
+	private void gitMerge(){
+		try{
+			MergeResult result=((Git)getParent().getParent().getValue()).merge().include((Ref)getValue()).call();
+			if(result.getMergeStatus().equals(MergeResult.MergeStatus.MERGED)){
+				RevCommit commit=((Git)getParent().getParent().getValue()).log().addRange(result.getNewHead(),result.getNewHead()).call().iterator().next();
+				getParent().getChildren().filtered(item->item instanceof LocalTreeItem).
+					forEach((item)->item.getChildren().add(new CommitTreeItem(commit)));
+			}else{
+				new Alert(Alert.AlertType.INFORMATION,result.getMergeStatus().toString(),ButtonType.CLOSE).show();
+			}
+		}catch(GitAPIException|MissingObjectException|IncorrectObjectTypeException ex){
+			Logger.getLogger(Main.class.getName()).log(Level.SEVERE,null,ex);
+			new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
+		}
 	}
 	private void gitCheckout(){
 		try{
-			((Git)getParent().getValue()).checkout().setName(((Ref)getValue()).getName()).call();
+			((Git)getParent().getParent().getValue()).checkout().setName(((Ref)getValue()).getName()).call();
 		}catch(GitAPIException ex){
 			Logger.getLogger(Main.class.getName()).log(Level.SEVERE,null,ex);
 			new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
@@ -68,7 +86,7 @@ public class BranchTreeItem extends TreeItem<Object> implements NavigationTreeIt
 	private void gitRevert(){
 		try{
 			RevCommit rev=((Git)getParent().getParent().getValue()).revert().include((Ref)getValue()).call();
-			getParent().getChildren().filtered(item->item instanceof LocalTreeItem).
+			getParent().getParent().getChildren().filtered(item->item instanceof LocalTreeItem).
 					forEach((item)->item.getChildren().add(new CommitTreeItem(rev)));
 		}catch(GitAPIException ex){
 			Logger.getLogger(BranchTreeItem.class.getName()).log(Level.SEVERE,null,ex);

@@ -18,6 +18,9 @@ import org.eclipse.jgit.transport.*;
 public class RemoteTreeItem extends TreeItem<Object> implements NavigationTreeItem{
 	public RemoteTreeItem(RemoteConfig ref){
 		super(ref);
+		for(RefSpec refSpec:ref.getFetchRefSpecs()){
+			getChildren().add(new RemoteSpecTreeItem(refSpec));
+		}
 	}
 	@Override
 	public String toString(){

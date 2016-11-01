@@ -8,6 +8,7 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 import java.util.logging.*;
+import javafx.application.*;
 import javafx.scene.control.*;
 import org.eclipse.jgit.api.*;
 import org.eclipse.jgit.api.errors.*;
@@ -38,7 +39,9 @@ public class GitTreeItem extends TreeItem<Object> implements NavigationTreeItem{
 	public MenuItem[] getContextMenuItems(){
 		MenuItem remote=new MenuItem("New remote");
 		remote.setOnAction((e)->gitRemoteNew());
-		return new MenuItem[]{remote};
+		MenuItem gc=new MenuItem("Collect gargage");
+		gc.setOnAction((e)->gitGC());
+		return new MenuItem[]{remote,gc};
 	}
 	private void gitRemoteNew(){
 		TextInputDialog dialog=new TextInputDialog();
@@ -58,5 +61,21 @@ public class GitTreeItem extends TreeItem<Object> implements NavigationTreeItem{
 				Logger.getLogger(Main.class.getName()).log(Level.SEVERE,null,ex);
 				new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
 			}
+	}
+	private void gitGC(){
+		ProgressDialog progressDialog=new ProgressDialog("GC");
+		GarbageCollectCommand command=((Git)getValue()).gc().setProgressMonitor(progressDialog);
+		new Thread(()->{
+			try{
+				Properties stat=command.call();
+				System.out.println(stat);
+			}catch(GitAPIException ex){
+				Logger.getLogger(GitTreeItem.class.getName()).log(Level.SEVERE,null,ex);
+				Platform.runLater(()->{
+					progressDialog.hide();
+					new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
+				});
+			}
+		}).start();
 	}
 }
