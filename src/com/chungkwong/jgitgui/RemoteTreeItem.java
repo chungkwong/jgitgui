@@ -7,9 +7,12 @@ package com.chungkwong.jgitgui;
 import java.net.*;
 import java.util.*;
 import java.util.logging.*;
+import javafx.application.*;
 import javafx.scene.control.*;
 import org.eclipse.jgit.api.*;
 import org.eclipse.jgit.api.errors.*;
+import org.eclipse.jgit.errors.*;
+import org.eclipse.jgit.lib.*;
 import org.eclipse.jgit.transport.*;
 /**
  *
@@ -19,7 +22,10 @@ public class RemoteTreeItem extends TreeItem<Object> implements NavigationTreeIt
 	public RemoteTreeItem(RemoteConfig ref){
 		super(ref);
 		for(RefSpec refSpec:ref.getFetchRefSpecs()){
-			getChildren().add(new RemoteSpecTreeItem(refSpec));
+			getChildren().add(new RemoteSpecTreeItem(refSpec,true));
+		}
+		for(RefSpec refSpec:ref.getPushRefSpecs()){
+			getChildren().add(new RemoteSpecTreeItem(refSpec,false));
 		}
 	}
 	@Override
@@ -28,11 +34,17 @@ public class RemoteTreeItem extends TreeItem<Object> implements NavigationTreeIt
 	}
 	@Override
 	public MenuItem[] getContextMenuItems(){
+		MenuItem push=new MenuItem("Push");
+		push.setOnAction((e)->gitPush());
+		MenuItem pull=new MenuItem("Pull");
+		pull.setOnAction((e)->gitPull());
+		MenuItem fetch=new MenuItem("Fetch");
+		fetch.setOnAction((e)->gitFetch());
 		MenuItem remove=new MenuItem("Remove remote");
-		MenuItem resetURL=new MenuItem("Reset URL");
 		remove.setOnAction((e)->gitRemoteRemove());
+		MenuItem resetURL=new MenuItem("Reset URL");
 		resetURL.setOnAction((e)->gitRemoteResetURL());
-		return new MenuItem[]{remove,resetURL};
+		return new MenuItem[]{push,pull,fetch,remove,resetURL};
 	}
 	private void gitRemoteResetURL(){
 		TextInputDialog branchDialog=new TextInputDialog();
@@ -66,5 +78,68 @@ public class RemoteTreeItem extends TreeItem<Object> implements NavigationTreeIt
 			Logger.getLogger(Main.class.getName()).log(Level.SEVERE,null,ex);
 				new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
 		}
+	}
+	private void gitFetch(){
+		ProgressDialog progressDialog=new ProgressDialog("Fetch");
+		FetchCommand command=((Git)getParent().getValue()).fetch().setRemote(((RemoteConfig)getValue()).getName()).setProgressMonitor(progressDialog);
+		new Thread(()->{
+			try{
+				FetchResult result=command.call();
+				ArrayList<CommitTreeItem> commits=new ArrayList<>();
+				for(Ref ref:result.getAdvertisedRefs())
+					commits.add(new CommitTreeItem(((Git)getParent().getValue()).log().addRange(ref.getObjectId(),ref.getObjectId()).call().iterator().next()));
+				getParent().getChildren().filtered(item->item instanceof LocalTreeItem).
+					forEach((item)->item.getChildren().addAll(commits));
+			}catch(GitAPIException|MissingObjectException|IncorrectObjectTypeException ex){
+				Logger.getLogger(GitTreeItem.class.getName()).log(Level.SEVERE,null,ex);
+				Platform.runLater(()->{
+					progressDialog.hide();
+					new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
+				});
+			}
+		}).start();
+	}
+	private void gitPull(){
+		ProgressDialog progressDialog=new ProgressDialog("Pulling");
+		PullCommand command=((Git)getParent().getValue()).pull().setRemote(((RemoteConfig)getValue()).getName()).setProgressMonitor(progressDialog);
+		new Thread(()->{
+			try{
+				PullResult result=command.call();
+				HashSet<CommitTreeItem> commits=new HashSet<>();
+				if(result.getFetchResult()!=null){
+					for(Ref ref:result.getFetchResult().getAdvertisedRefs())
+						commits.add(new CommitTreeItem(((Git)getParent().getValue()).log().addRange(ref.getObjectId(),ref.getObjectId()).call().iterator().next()));
+				}
+				if(result.getMergeResult()!=null&&result.getMergeResult().getMergeStatus().equals(MergeResult.MergeStatus.MERGED)){
+					ObjectId head=result.getMergeResult().getNewHead();
+					commits.add(new CommitTreeItem(((Git)getParent().getValue()).log().addRange(head,head).call().iterator().next()));
+				}else{
+					new Alert(Alert.AlertType.INFORMATION,result.toString(),ButtonType.CLOSE).show();
+				}
+				getParent().getChildren().filtered(item->item instanceof LocalTreeItem).
+					forEach((item)->item.getChildren().addAll(commits));
+			}catch(GitAPIException|MissingObjectException|IncorrectObjectTypeException ex){
+				Logger.getLogger(GitTreeItem.class.getName()).log(Level.SEVERE,null,ex);
+				Platform.runLater(()->{
+					progressDialog.hide();
+					new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
+				});
+			}
+		}).start();
+	}
+	private void gitPush(){
+		ProgressDialog progressDialog=new ProgressDialog("Pushing");
+		PushCommand command=((Git)getParent().getValue()).push().setRemote(((RemoteConfig)getValue()).getName()).setProgressMonitor(progressDialog);
+		new Thread(()->{
+			try{
+				command.call();
+			}catch(GitAPIException ex){
+				Logger.getLogger(GitTreeItem.class.getName()).log(Level.SEVERE,null,ex);
+				Platform.runLater(()->{
+					progressDialog.hide();
+					new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
+				});
+			}
+		}).start();
 	}
 }

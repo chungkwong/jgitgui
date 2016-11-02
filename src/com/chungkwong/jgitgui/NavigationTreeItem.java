@@ -4,6 +4,7 @@
  * and open the template in the editor.
  */
 package com.chungkwong.jgitgui;
+import javafx.scene.*;
 import javafx.scene.control.*;
 /**
  *
@@ -11,4 +12,7 @@ import javafx.scene.control.*;
  */
 public interface NavigationTreeItem{
 	MenuItem[] getContextMenuItems();
+	default Node getContentPage(){
+		return new Label();
+	}
 }

@@ -15,36 +15,26 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package com.chungkwong.jgitgui;
-import java.util.logging.*;
 import javafx.scene.control.*;
 import org.eclipse.jgit.api.*;
 import org.eclipse.jgit.api.errors.*;
-import org.eclipse.jgit.lib.*;
+import org.eclipse.jgit.notes.*;
 /**
  *
  * @author Chan Chung Kwong <1m02math@126.com>
  */
-public class TagTreeItem extends TreeItem<Object> implements NavigationTreeItem{
-	public TagTreeItem(Ref ref){
-		super(ref);
+public class NoteListTreeItem extends TreeItem<Object> implements NavigationTreeItem{
+	public NoteListTreeItem(Git git) throws GitAPIException{
+		super("Note");
+		for(Note note:git.notesList().call())
+			getChildren().add(new NoteTreeItem(note));
 	}
 	@Override
 	public String toString(){
-		return ((Ref)getValue()).getName();
+		return "Note";
 	}
 	@Override
 	public MenuItem[] getContextMenuItems(){
-		MenuItem removeTag=new MenuItem("Remove tag");
-		removeTag.setOnAction((e)->gitTagRemove());
-		return new MenuItem[]{removeTag};
-	}
-	private void gitTagRemove(){
-		try{
-			((Git)getParent().getParent().getValue()).tagDelete().setTags(((Ref)getValue()).getName()).call();
-			getParent().getChildren().remove(this);
-		}catch(GitAPIException ex){
-			Logger.getLogger(Main.class.getName()).log(Level.SEVERE,null,ex);
-			new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
-		}
+		return new MenuItem[0];
 	}
 }

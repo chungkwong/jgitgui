@@ -22,12 +22,20 @@ import org.eclipse.jgit.transport.*;
  * @author Chan Chung Kwong <1m02math@126.com>
  */
 public class RemoteSpecTreeItem extends TreeItem implements NavigationTreeItem{
-	public RemoteSpecTreeItem(RefSpec ref){
+	private final boolean fetch;
+	public RemoteSpecTreeItem(RefSpec ref,boolean fetch){
 		super(ref);
+		this.fetch=fetch;
+	}
+	public boolean isFetch(){
+		return fetch;
 	}
 	@Override
 	public String toString(){
-		return ((RefSpec)getValue()).getSource();
+		return ((RefSpec)getValue()).getSource()+"->"+getType()+((RefSpec)getValue()).getDestination();
+	}
+	private String getType(){
+		return fetch?"(Fetch)":"(Push)";
 	}
 	@Override
 	public MenuItem[] getContextMenuItems(){

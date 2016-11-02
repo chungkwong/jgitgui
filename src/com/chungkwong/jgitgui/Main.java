@@ -9,6 +9,7 @@ import java.io.*;
 import java.text.*;
 import java.util.*;
 import java.util.logging.*;
+import java.util.stream.*;
 import javafx.application.*;
 import javafx.beans.property.*;
 import javafx.beans.value.*;
@@ -22,6 +23,7 @@ import org.eclipse.jgit.api.*;
 import org.eclipse.jgit.api.errors.*;
 import org.eclipse.jgit.lib.*;
 import org.eclipse.jgit.revwalk.*;
+import org.eclipse.jgit.transport.*;
 /**
  *
  * @author Chan Chung Kwong <1m02math@126.com>
@@ -67,6 +69,15 @@ public class Main extends Application{
 		ContextMenu contextMenu=new ContextMenu();
 		nav.setContextMenu(contextMenu);
 		nav.setOnContextMenuRequested((e)->contextMenu.getItems().setAll(((NavigationTreeItem)nav.getSelectionModel().getSelectedItem()).getContextMenuItems()));
+		nav.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<TreeItem<Object>>(){
+			@Override
+			public void changed(ObservableValue<? extends TreeItem<Object>> ov,TreeItem<Object> t,TreeItem<Object> t1){
+				if(t1!=null)
+					content.getChildren().setAll(((NavigationTreeItem)t1).getContentPage());
+				else
+					content.getChildren().clear();
+			}
+		});
 		view.setCenter(nav);
 		view.setBottom(createColumnsChooser(nav));
 		return view;
@@ -125,6 +136,16 @@ public class Main extends Application{
 					return new ReadOnlyObjectWrapper<>("");
 			}
 		},false,nav));
+		chooser.getChildren().add(createColumnChooser("URI",new Callback<TreeTableColumn.CellDataFeatures<Object, String>,ObservableValue<String>>() {
+			@Override
+			public ObservableValue<String> call(TreeTableColumn.CellDataFeatures<Object,String> p){
+				if(p.getValue() instanceof RemoteTreeItem){
+					String uris=((RemoteConfig)p.getValue().getValue()).getURIs().stream().map((url)->url.toString()).collect(Collectors.joining(" "));
+					return new ReadOnlyObjectWrapper<>(uris);
+				}else
+					return new ReadOnlyObjectWrapper<>("");
+			}
+		},false,nav));
 
 		return chooser;
 	}
@@ -156,8 +177,8 @@ public class Main extends Application{
 		try{
 			File dir=dirChooser.showDialog(null);
 			if(dir!=null)
-				navigationRoot.getChildren().add(new GitTreeItem(Git.open(dir),dir));
-		}catch(IOException|GitAPIException ex){
+				navigationRoot.getChildren().add(new GitTreeItem(Git.open(dir)));
+		}catch(IOException ex){
 			Logger.getLogger(Main.class.getName()).log(Level.SEVERE,null,ex);
 			new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
 		}
@@ -166,28 +187,37 @@ public class Main extends Application{
 		try{
 			File dir=dirChooser.showDialog(null);
 			if(dir!=null)
-				navigationRoot.getChildren().add(new GitTreeItem(Git.init().setDirectory(dir).call(),dir));
+				navigationRoot.getChildren().add(new GitTreeItem(Git.init().setDirectory(dir).call()));
 		}catch(GitAPIException ex){
 			Logger.getLogger(Main.class.getName()).log(Level.SEVERE,null,ex);
 			new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
 		}
 	}
 	private void gitClone(){
-		try{
-			File dir=dirChooser.showDialog(null);
-			if(dir!=null){
-				TextInputDialog urlDialog=new TextInputDialog();
-				urlDialog.setTitle("Choose a repository to clone");
-				urlDialog.setHeaderText("Enter the URL:");
-				Optional<String> url=urlDialog.showAndWait();
-				if(url.isPresent()){
-					navigationRoot.getChildren().add(new GitTreeItem(
-							Git.cloneRepository().setDirectory(dir).setURI(url.get()).call(),dir));
-				}
+		File dir=dirChooser.showDialog(null);
+		if(dir!=null){
+			TextInputDialog urlDialog=new TextInputDialog();
+			urlDialog.setTitle("Choose a repository to clone");
+			urlDialog.setHeaderText("Enter the URL:");
+			Optional<String> url=urlDialog.showAndWait();
+			if(url.isPresent()){
+				ProgressDialog progressDialog=new ProgressDialog("GC");
+				new Thread(()->{
+					try{
+						Git repository=Git.cloneRepository().setDirectory(dir).setURI(url.get()).setProgressMonitor(progressDialog).call();
+						Platform.runLater(()->{
+							navigationRoot.getChildren().add(new GitTreeItem(repository));
+						});
+					}catch(GitAPIException ex){
+						Logger.getLogger(GitTreeItem.class.getName()).log(Level.SEVERE,null,ex);
+						Platform.runLater(()->{
+							progressDialog.hide();
+							new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
+						});
+					}
+				}).start();
+
 			}
-		}catch(GitAPIException ex){
-			Logger.getLogger(Main.class.getName()).log(Level.SEVERE,null,ex);
-			new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
 		}
 	}
 }

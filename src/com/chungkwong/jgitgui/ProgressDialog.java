@@ -47,7 +47,8 @@ public class ProgressDialog extends Dialog<Object> implements ProgressMonitor{
 	public synchronized void update(int completed){
 		finishedWork+=completed;
 		Platform.runLater(()->{
-			bar.setProgress((finishedTask+((double)finishedWork)/totalWork)/totalTask);
+			if(totalWork>0)
+				bar.setProgress((finishedTask+((double)finishedWork)/totalWork)/totalTask);
 		});
 	}
 	@Override

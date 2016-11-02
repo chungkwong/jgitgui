@@ -15,36 +15,54 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package com.chungkwong.jgitgui;
+import java.io.*;
 import java.util.logging.*;
+import javafx.scene.*;
 import javafx.scene.control.*;
 import org.eclipse.jgit.api.*;
 import org.eclipse.jgit.api.errors.*;
-import org.eclipse.jgit.lib.*;
+import org.eclipse.jgit.errors.*;
+import org.eclipse.jgit.notes.*;
+import org.eclipse.jgit.revwalk.*;
 /**
  *
  * @author Chan Chung Kwong <1m02math@126.com>
  */
-public class TagTreeItem extends TreeItem<Object> implements NavigationTreeItem{
-	public TagTreeItem(Ref ref){
+public class NoteTreeItem extends TreeItem<Object> implements NavigationTreeItem{
+	public NoteTreeItem(Note ref){
 		super(ref);
 	}
 	@Override
 	public String toString(){
-		return ((Ref)getValue()).getName();
+		return ((Note)getValue()).getName();
 	}
 	@Override
 	public MenuItem[] getContextMenuItems(){
-		MenuItem removeTag=new MenuItem("Remove tag");
-		removeTag.setOnAction((e)->gitTagRemove());
-		return new MenuItem[]{removeTag};
+		MenuItem remove=new MenuItem("Remove note");
+		remove.setOnAction((e)->gitNoteRemove());
+		return new MenuItem[]{remove};
 	}
-	private void gitTagRemove(){
+	private void gitNoteRemove(){
 		try{
-			((Git)getParent().getParent().getValue()).tagDelete().setTags(((Ref)getValue()).getName()).call();
+			RevCommit rev=((Git)getParent().getParent().getValue()).log().addRange((Note)getValue(),(Note)getValue()).call().iterator().next();
+			((Git)getParent().getParent().getValue()).notesRemove().setObjectId(rev).call();
 			getParent().getChildren().remove(this);
-		}catch(GitAPIException ex){
+		}catch(GitAPIException|MissingObjectException|IncorrectObjectTypeException ex){
 			Logger.getLogger(Main.class.getName()).log(Level.SEVERE,null,ex);
 			new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
 		}
+	}
+	@Override
+	public Node getContentPage(){
+		TextArea area=new TextArea();
+		area.setEditable(false);
+		try{
+			byte[] bytes=((Git)getParent().getParent().getValue()).getRepository().open(((Note)getValue()).getData()).getBytes();
+			area.setText(new String(bytes,"UTF-8"));
+		}catch(IOException ex){
+			Logger.getLogger(NoteTreeItem.class.getName()).log(Level.SEVERE,null,ex);
+			new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
+		}
+		return area;
 	}
 }

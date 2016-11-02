@@ -43,7 +43,7 @@ public class BranchTreeItem extends TreeItem<Object> implements NavigationTreeIt
 			MergeResult result=((Git)getParent().getParent().getValue()).merge().include((Ref)getValue()).call();
 			if(result.getMergeStatus().equals(MergeResult.MergeStatus.MERGED)){
 				RevCommit commit=((Git)getParent().getParent().getValue()).log().addRange(result.getNewHead(),result.getNewHead()).call().iterator().next();
-				getParent().getChildren().filtered(item->item instanceof LocalTreeItem).
+				getParent().getParent().getChildren().filtered(item->item instanceof LocalTreeItem).
 					forEach((item)->item.getChildren().add(new CommitTreeItem(commit)));
 			}else{
 				new Alert(Alert.AlertType.INFORMATION,result.getMergeStatus().toString(),ButtonType.CLOSE).show();
