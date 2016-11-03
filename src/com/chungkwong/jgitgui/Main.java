@@ -31,7 +31,7 @@ import org.eclipse.jgit.transport.*;
 public class Main extends Application{
 	private final DirectoryChooser dirChooser=new DirectoryChooser();
 	private final TreeItem<Object> navigationRoot=new TreeItem<>();
-	private final StackPane content=new StackPane();
+	private final BorderPane content=new BorderPane();
 	@Override
 	public void start(Stage primaryStage){
 		BorderPane root=new BorderPane();
@@ -40,7 +40,7 @@ public class Main extends Application{
 		split.setOrientation(Orientation.HORIZONTAL);
 		split.getItems().add(createNavigation());
 		split.getItems().add(content);
-		split.setDividerPosition(0,0.5);
+		split.setDividerPosition(0,0.3);
 		root.setCenter(split);
 
 		Scene scene=new Scene(root);
@@ -73,9 +73,9 @@ public class Main extends Application{
 			@Override
 			public void changed(ObservableValue<? extends TreeItem<Object>> ov,TreeItem<Object> t,TreeItem<Object> t1){
 				if(t1!=null)
-					content.getChildren().setAll(((NavigationTreeItem)t1).getContentPage());
+					content.setCenter(((NavigationTreeItem)t1).getContentPage());
 				else
-					content.getChildren().clear();
+					content.setCenter(null);
 			}
 		});
 		view.setCenter(nav);

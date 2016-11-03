@@ -15,12 +15,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package com.chungkwong.jgitgui;
+import java.io.*;
 import java.util.*;
 import java.util.logging.*;
+import java.util.stream.*;
+import javafx.event.*;
+import javafx.scene.Node;
 import javafx.scene.control.*;
+import javafx.scene.layout.*;
 import org.eclipse.jgit.api.*;
 import org.eclipse.jgit.api.errors.*;
+import org.eclipse.jgit.diff.*;
+import org.eclipse.jgit.errors.*;
+import org.eclipse.jgit.lib.*;
 import org.eclipse.jgit.revwalk.*;
+import org.eclipse.jgit.treewalk.*;
 /**
  *
  * @author Chan Chung Kwong <1m02math@126.com>
@@ -53,5 +62,39 @@ public class LogTreeItem extends TreeItem<Object> implements NavigationTreeItem{
 				Logger.getLogger(Main.class.getName()).log(Level.SEVERE,null,ex);
 				new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
 			}
+	}
+	private RevCommit toRevCommit(ObjectId id) throws MissingObjectException, IncorrectObjectTypeException, GitAPIException{
+		return ((Git)getParent().getValue()).log().addRange(id,id).call().iterator().next();
+	}
+	@Override
+	public Node getContentPage(){
+		GridPane page=new GridPane();
+		TextField oldSrc=new TextField();
+		TextField newSrc=new TextField();
+		Button ok=new Button("Diff");
+		TextArea diff=new TextArea();
+		diff.setEditable(false);
+		Git git=((Git)getParent().getValue());
+		GridPane.setVgrow(diff,Priority.ALWAYS);
+		GridPane.setHgrow(diff,Priority.ALWAYS);
+		GridPane.setHgrow(oldSrc,Priority.ALWAYS);
+		GridPane.setHgrow(newSrc,Priority.ALWAYS);
+		ok.setOnAction((ActionEvent e)->{
+			try(ObjectReader reader=git.getRepository().newObjectReader()){
+				CanonicalTreeParser oldTreeIter=new CanonicalTreeParser();
+				oldTreeIter.reset(reader,git.getRepository().resolve(oldSrc.getText()));
+				CanonicalTreeParser newTreeIter=new CanonicalTreeParser();
+				newTreeIter.reset(reader,git.getRepository().resolve(newSrc.getText()));
+				List<DiffEntry> entries=((Git)getParent().getValue()).diff().setNewTree(newTreeIter).setOldTree(oldTreeIter).call();
+				diff.setText(entries.stream().map((o)->o.toString()).collect(Collectors.joining("\n\n")));
+			}catch(GitAPIException|IOException ex){
+				Logger.getLogger(LogTreeItem.class.getName()).log(Level.SEVERE,null,ex);
+				new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
+			}
+		});
+		page.addColumn(0,oldSrc,newSrc,ok,diff);
+
+		page.setMaxSize(Double.POSITIVE_INFINITY,Double.POSITIVE_INFINITY);
+		return page;
 	}
 }

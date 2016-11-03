@@ -1,5 +1,3 @@
-AddCommand 	add()
-Returns a command object to execute a Add command
 ApplyCommand 	apply()
 Returns a command object to execute a apply command
 ArchiveCommand 	archive()
@@ -8,36 +6,17 @@ BlameCommand 	blame()
 Returns a command object to execute a blame command
 CherryPickCommand 	cherryPick()
 Returns a command object to execute a cherry-pick command
-CleanCommand 	clean()
-Returns a command object to execute a clean command
-void 	close()
-Frees resources associated with this instance.
-CommitCommand 	commit()
-Returns a command object to execute a Commit command
 DescribeCommand 	describe()
 Returns a command object to come up with a short name that describes a commit in terms of the nearest git tag.
 DiffCommand 	diff()
 Returns a command object to execute a diff command
-FetchCommand 	fetch()
-Returns a command object to execute a Fetch command
 LsRemoteCommand 	lsRemote()
 Returns a command object to execute a ls-remote command
-MergeCommand 	merge()
-Returns a command object to execute a Merge command
 NameRevCommand 	nameRev()
 Returns a command object to find human-readable names of revisions.
 AddNoteCommand 	notesAdd()
 Returns a command to add notes to an object
-ListNotesCommand 	notesList()
-Returns a command to list all notes
-RemoveNoteCommand 	notesRemove()
-Returns a command to remove notes on an object
-ShowNoteCommand 	notesShow()
 Returns a command to show notes on an object
-PullCommand 	pull()
-Returns a command object to execute a Pull command
-PushCommand 	push()
-Returns a command object to execute a Push command
 RebaseCommand 	rebase()
 Returns a command object to execute a Rebase command
 ReflogCommand 	reflog()
@@ -54,8 +33,6 @@ StashDropCommand 	stashDrop()
 Returns a command object used to drop a stashed commit
 StashListCommand 	stashList()
 Returns a command object used to list stashed commits
-StatusCommand 	status()
-Returns a command object to execute a status command
 SubmoduleAddCommand 	submoduleAdd()
 Returns a command object to execute a submodule add command
 SubmoduleInitCommand 	submoduleInit()

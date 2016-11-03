@@ -16,6 +16,7 @@ import javafx.scene.layout.*;
 import org.eclipse.jgit.api.*;
 import org.eclipse.jgit.api.errors.*;
 import org.eclipse.jgit.errors.*;
+import org.eclipse.jgit.revwalk.*;
 import org.eclipse.jgit.transport.*;
 /**
  *
@@ -90,17 +91,22 @@ public class GitTreeItem extends TreeItem<Object> implements NavigationTreeItem{
 		GridPane node=new GridPane();
 		try{
 			Status status=((Git)getValue()).status().call();
-			Node untracked=createList("Untracked File",status.getUntracked());
-			Node missing=createList("Missing",status.getMissing());
-			Node modified=createList("Modified",status.getModified());
-			Node added=createList("Added",status.getAdded());
-			Node removed=createList("Removed",status.getRemoved());
-			Node changed=createList("Changed",status.getChanged());
+			Set<String> untrackedSet=new HashSet<>(status.getUntrackedFolders());
+			untrackedSet.addAll(status.getUntracked());
+			untrackedSet.removeAll(status.getIgnoredNotInIndex());
+			TitledPane untracked=createList("Untracked File",untrackedSet);
+			TitledPane missing=createList("Missing",status.getMissing());
+			TitledPane modified=createList("Modified",status.getModified());
+			TitledPane added=createList("Added",status.getAdded());
+			TitledPane removed=createList("Removed",status.getRemoved());
+			TitledPane changed=createList("Changed",status.getChanged());
+			Button add=new Button("Add");
+			add.setOnAction((e)->gitAdd(untracked,modified,added,changed));
 			Button commit=new Button("Commit");
-			commit.setOnAction((e)->gitCommit());
+			commit.setOnAction((e)->gitCommit(added,removed,changed));
 			Button clean=new Button("Clean");
-			clean.setOnAction((e)->gitClean());
-			node.addColumn(0,untracked,missing,modified);
+			clean.setOnAction((e)->gitClean(untracked));
+			node.addColumn(0,untracked,missing,modified,add);
 			node.addColumn(1,added,removed,changed,commit,clean);
 		}catch(GitAPIException|NoWorkTreeException ex){
 			Logger.getLogger(GitTreeItem.class.getName()).log(Level.SEVERE,null,ex);
@@ -108,24 +114,58 @@ public class GitTreeItem extends TreeItem<Object> implements NavigationTreeItem{
 		}
 		return node;
 	}
-	private void gitCommit(){
+	private void gitCommit(TitledPane addedView,TitledPane removedView,TitledPane changedView){
+		TextInputDialog dialog=new TextInputDialog();
+		dialog.setTitle("Choose a message for the commit");
+		dialog.setHeaderText("Enter the message:");
+		Optional<String> msg=dialog.showAndWait();
+		if(msg.isPresent())
+			try{
+				RevCommit commit=((Git)getValue()).commit().setMessage(msg.get()).call();
+				((ListView<String>)addedView.getContent()).getItems().clear();
+				((ListView<String>)removedView.getContent()).getItems().clear();
+				((ListView<String>)changedView.getContent()).getItems().clear();
+				getChildren().stream().filter((item)->item instanceof LogTreeItem).forEach(
+						(item)->((LocalTreeItem)item).getChildren().add(new CommitTreeItem(commit)));
+			}catch(GitAPIException ex){
+				Logger.getLogger(Main.class.getName()).log(Level.SEVERE,null,ex);
+				new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
+			}
+	}
+	private void gitClean(TitledPane untrackedView){
 		try{
-			((Git)getValue()).commit().call();
+			((Git)getValue()).clean().setIgnore(true).call();
+			((ListView<String>)untrackedView.getContent()).getItems().clear();
 		}catch(GitAPIException ex){
 			Logger.getLogger(Main.class.getName()).log(Level.SEVERE,null,ex);
 			new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
 		}
 	}
-	private void gitClean(){
-		try{
-			((Git)getValue()).clean().call();
-		}catch(GitAPIException ex){
-			Logger.getLogger(Main.class.getName()).log(Level.SEVERE,null,ex);
-			new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
-		}
-	}
-	private Node createList(String title,Set<String> data){
+	private TitledPane createList(String title,Set<String> data){
 		ListView<String> list=new ListView<>(FXCollections.observableList(data.stream().collect(Collectors.toList())));
+		list.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
 		return new TitledPane(title,list);
+	}
+	private void gitAdd(TitledPane untrackedView,TitledPane modifiedView,TitledPane addedView,TitledPane changedView){
+		Git git=(Git)getValue();
+		ListView<String> untracked=((ListView<String>)untrackedView.getContent());
+		ListView<String> modified=((ListView<String>)modifiedView.getContent());
+		ListView<String> added=((ListView<String>)addedView.getContent());
+		ListView<String> changed=((ListView<String>)changedView.getContent());
+		try{
+			for(String item:untracked.getSelectionModel().getSelectedItems()){
+				git.add().addFilepattern(item).call();
+				untracked.getItems().remove(item);
+				added.getItems().add(item);
+			}
+			for(String item:modified.getSelectionModel().getSelectedItems()){
+				git.add().addFilepattern(item).call();
+				modified.getItems().remove(item);
+				changed.getItems().add(item);
+			}
+		}catch(GitAPIException ex){
+			Logger.getLogger(GitTreeItem.class.getName()).log(Level.SEVERE,null,ex);
+			new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
+		}
 	}
 }
