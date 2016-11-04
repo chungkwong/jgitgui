@@ -15,35 +15,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package com.chungkwong.jgitgui;
-import java.util.logging.*;
 import javafx.scene.control.*;
-import org.eclipse.jgit.api.*;
-import org.eclipse.jgit.lib.*;
 /**
  *
  * @author Chan Chung Kwong <1m02math@126.com>
  */
-public class TagTreeItem extends TreeItem<Object> implements NavigationTreeItem{
-	public TagTreeItem(Ref ref){
-		super(ref);
-	}
-	@Override
-	public String toString(){
-		return ((Ref)getValue()).getName();
-	}
-	@Override
-	public MenuItem[] getContextMenuItems(){
-		MenuItem removeTag=new MenuItem("Remove tag");
-		removeTag.setOnAction((e)->gitTagRemove());
-		return new MenuItem[]{removeTag};
-	}
-	private void gitTagRemove(){
-		try{
-			((Git)getParent().getParent().getValue()).tagDelete().setTags(((Ref)getValue()).getName()).call();
-			getParent().getChildren().remove(this);
-		}catch(Exception ex){
-			Logger.getLogger(Main.class.getName()).log(Level.SEVERE,null,ex);
-			Util.informUser(ex);
-		}
+public class Util{
+	public static void informUser(Throwable ex){
+		Alert dialog=new Alert(Alert.AlertType.ERROR,"Something go wrong",ButtonType.CLOSE);
+		dialog.getDialogPane().setContent(new Label(ex.getLocalizedMessage()));
+		dialog.show();
 	}
 }

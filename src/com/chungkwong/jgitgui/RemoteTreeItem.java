@@ -4,14 +4,12 @@
  * and open the template in the editor.
  */
 package com.chungkwong.jgitgui;
-import java.net.*;
 import java.util.*;
 import java.util.logging.*;
 import javafx.application.*;
 import javafx.scene.control.*;
+import javafx.scene.layout.*;
 import org.eclipse.jgit.api.*;
-import org.eclipse.jgit.api.errors.*;
-import org.eclipse.jgit.errors.*;
 import org.eclipse.jgit.lib.*;
 import org.eclipse.jgit.transport.*;
 /**
@@ -63,9 +61,9 @@ public class RemoteTreeItem extends TreeItem<Object> implements NavigationTreeIt
 				command.setUri(new URIish(name.get()));
 				command.setPush(false);
 				command.call();
-			}catch(GitAPIException|URISyntaxException ex){
+			}catch(Exception ex){
 				Logger.getLogger(Main.class.getName()).log(Level.SEVERE,null,ex);
-				new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
+				Util.informUser(ex);
 			}
 	}
 	private void gitRemoteRemove(){
@@ -74,9 +72,9 @@ public class RemoteTreeItem extends TreeItem<Object> implements NavigationTreeIt
 			command.setName(((RemoteConfig)getValue()).getName());
 			command.call();
 			getParent().getChildren().remove(this);
-		}catch(GitAPIException ex){
+		}catch(Exception ex){
 			Logger.getLogger(Main.class.getName()).log(Level.SEVERE,null,ex);
-				new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
+				Util.informUser(ex);
 		}
 	}
 	private void gitFetch(){
@@ -90,11 +88,11 @@ public class RemoteTreeItem extends TreeItem<Object> implements NavigationTreeIt
 					commits.add(new CommitTreeItem(((Git)getParent().getValue()).log().addRange(ref.getObjectId(),ref.getObjectId()).call().iterator().next()));
 				getParent().getChildren().filtered(item->item instanceof LocalTreeItem).
 					forEach((item)->item.getChildren().addAll(commits));
-			}catch(GitAPIException|MissingObjectException|IncorrectObjectTypeException ex){
+			}catch(Exception ex){
 				Logger.getLogger(GitTreeItem.class.getName()).log(Level.SEVERE,null,ex);
 				Platform.runLater(()->{
 					progressDialog.hide();
-					new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
+					Util.informUser(ex);
 				});
 			}
 		}).start();
@@ -118,11 +116,11 @@ public class RemoteTreeItem extends TreeItem<Object> implements NavigationTreeIt
 				}
 				getParent().getChildren().filtered(item->item instanceof LocalTreeItem).
 					forEach((item)->item.getChildren().addAll(commits));
-			}catch(GitAPIException|MissingObjectException|IncorrectObjectTypeException ex){
+			}catch(Exception ex){
 				Logger.getLogger(GitTreeItem.class.getName()).log(Level.SEVERE,null,ex);
 				Platform.runLater(()->{
 					progressDialog.hide();
-					new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
+					Util.informUser(ex);
 				});
 			}
 		}).start();
@@ -130,14 +128,26 @@ public class RemoteTreeItem extends TreeItem<Object> implements NavigationTreeIt
 	private void gitPush(){
 		ProgressDialog progressDialog=new ProgressDialog("Pushing");
 		PushCommand command=((Git)getParent().getValue()).push().setRemote(((RemoteConfig)getValue()).getName()).setProgressMonitor(progressDialog);
+		TextField user=new TextField();
+		PasswordField pass=new PasswordField();
+		GridPane auth=new GridPane();
+		auth.addRow(0,new Label("User"),user);
+		auth.addRow(1,new Label("Password"),pass);
+		Dialog dialog=new Dialog();
+		dialog.getDialogPane().setContent(auth);
+		dialog.getDialogPane().getButtonTypes().addAll(ButtonType.CLOSE,ButtonType.APPLY);
+		dialog.showAndWait();
+		if(true){
+			command.setCredentialsProvider(new UsernamePasswordCredentialsProvider(user.getText(),pass.getText()));
+		}
 		new Thread(()->{
 			try{
 				command.call();
-			}catch(GitAPIException ex){
+			}catch(Exception ex){
 				Logger.getLogger(GitTreeItem.class.getName()).log(Level.SEVERE,null,ex);
 				Platform.runLater(()->{
 					progressDialog.hide();
-					new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
+					Util.informUser(ex);
 				});
 			}
 		}).start();

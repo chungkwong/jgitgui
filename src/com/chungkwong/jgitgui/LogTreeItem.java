@@ -58,9 +58,9 @@ public class LogTreeItem extends TreeItem<Object> implements NavigationTreeItem{
 		if(msg.isPresent())
 			try{
 				getChildren().add(new CommitTreeItem(((Git)getParent().getValue()).commit().setMessage(msg.get()).call()));
-			}catch(GitAPIException ex){
+			}catch(Exception ex){
 				Logger.getLogger(Main.class.getName()).log(Level.SEVERE,null,ex);
-				new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
+				Util.informUser(ex);
 			}
 	}
 	private RevCommit toRevCommit(ObjectId id) throws MissingObjectException, IncorrectObjectTypeException, GitAPIException{
@@ -71,6 +71,7 @@ public class LogTreeItem extends TreeItem<Object> implements NavigationTreeItem{
 		GridPane page=new GridPane();
 		TextField oldSrc=new TextField();
 		TextField newSrc=new TextField();
+		CheckBox detailed=new CheckBox("Detailed");
 		Button ok=new Button("Diff");
 		TextArea diff=new TextArea();
 		diff.setEditable(false);
@@ -81,20 +82,51 @@ public class LogTreeItem extends TreeItem<Object> implements NavigationTreeItem{
 		GridPane.setHgrow(newSrc,Priority.ALWAYS);
 		ok.setOnAction((ActionEvent e)->{
 			try(ObjectReader reader=git.getRepository().newObjectReader()){
-				CanonicalTreeParser oldTreeIter=new CanonicalTreeParser();
-				oldTreeIter.reset(reader,git.getRepository().resolve(oldSrc.getText()));
-				CanonicalTreeParser newTreeIter=new CanonicalTreeParser();
-				newTreeIter.reset(reader,git.getRepository().resolve(newSrc.getText()));
-				List<DiffEntry> entries=((Git)getParent().getValue()).diff().setNewTree(newTreeIter).setOldTree(oldTreeIter).call();
-				diff.setText(entries.stream().map((o)->o.toString()).collect(Collectors.joining("\n\n")));
-			}catch(GitAPIException|IOException ex){
+				List<DiffEntry> entries;
+				if(oldSrc.getText().isEmpty()&&newSrc.getText().isEmpty()){
+					entries=((Git)getParent().getValue()).diff().setCached(true).call();
+				}else{
+					CanonicalTreeParser oldTreeIter=new CanonicalTreeParser();
+					oldTreeIter.reset(reader,git.getRepository().resolve(oldSrc.getText()+"^{tree}"));
+					CanonicalTreeParser newTreeIter=new CanonicalTreeParser();
+					newTreeIter.reset(reader,git.getRepository().resolve(newSrc.getText()+"^{tree}"));
+					entries=((Git)getParent().getValue()).diff().setNewTree(newTreeIter).setOldTree(oldTreeIter).call();
+				}
+				if(detailed.isSelected()){
+					PipedInputStream in=new PipedInputStream();
+					PipedOutputStream out=new PipedOutputStream(in);
+					DiffFormatter formatter=new DiffFormatter(out);
+					formatter.setRepository(git.getRepository());
+					formatter.format(entries);
+					out.close();
+					diff.setText(new BufferedReader(new InputStreamReader(in)).lines().collect(Collectors.joining("\n")));
+				}else{
+					diff.setText(entries.stream().map((o)->toString(o)).collect(Collectors.joining("\n")));
+				}
+			}catch(Exception ex){
 				Logger.getLogger(LogTreeItem.class.getName()).log(Level.SEVERE,null,ex);
-				new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
+				Util.informUser(ex);
 			}
 		});
-		page.addColumn(0,oldSrc,newSrc,ok,diff);
+		page.addColumn(0,oldSrc,newSrc,detailed,ok,diff);
 
 		page.setMaxSize(Double.POSITIVE_INFINITY,Double.POSITIVE_INFINITY);
 		return page;
+	}
+	private static String toString(DiffEntry entry){
+		switch(entry.getChangeType()){
+			case ADD:
+				return entry.getNewPath()+" added";
+			case COPY:
+				return entry.getOldPath()+" copied to "+entry.getNewPath();
+			case DELETE:
+				return entry.getOldPath()+" removed";
+			case MODIFY:
+				return entry.getOldPath()+" modified";
+			case RENAME:
+				return entry.getOldPath()+" renamed to "+entry.getNewPath();
+			default:
+				return "";
+		}
 	}
 }

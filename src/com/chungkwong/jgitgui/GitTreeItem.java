@@ -4,7 +4,6 @@
  * and open the template in the editor.
  */
 package com.chungkwong.jgitgui;
-import java.net.*;
 import java.util.*;
 import java.util.logging.*;
 import java.util.stream.*;
@@ -14,8 +13,6 @@ import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import org.eclipse.jgit.api.*;
-import org.eclipse.jgit.api.errors.*;
-import org.eclipse.jgit.errors.*;
 import org.eclipse.jgit.revwalk.*;
 import org.eclipse.jgit.transport.*;
 /**
@@ -28,15 +25,16 @@ public class GitTreeItem extends TreeItem<Object> implements NavigationTreeItem{
 		//getChildren().add(new WorkingTreeItem(directory));
 		//getChildren().add(new StageTreeItem(git));
 		try{
+			getChildren().add(new StageTreeItem(git));
 			getChildren().add(new LogTreeItem(git));
 			getChildren().add(new NoteListTreeItem(git));
 			getChildren().add(new TagListTreeItem(git));
 			getChildren().add(new LocalTreeItem(git));
 			for(RemoteConfig remote:git.remoteList().call())
 				getChildren().add(new RemoteTreeItem(remote));
-		}catch(GitAPIException ex){
+		}catch(Exception ex){
 			Logger.getLogger(GitTreeItem.class.getName()).log(Level.SEVERE,null,ex);
-			new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
+			Util.informUser(ex);
 		}
 	}
 	@Override
@@ -65,9 +63,9 @@ public class GitTreeItem extends TreeItem<Object> implements NavigationTreeItem{
 				command.setName(name.get());
 				command.setUri(new URIish(uri.get()));
 				getChildren().add(new RemoteTreeItem(command.call()));
-			}catch(GitAPIException|URISyntaxException ex){
+			}catch(Exception ex){
 				Logger.getLogger(Main.class.getName()).log(Level.SEVERE,null,ex);
-				new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
+				Util.informUser(ex);
 			}
 	}
 	private void gitGC(){
@@ -77,11 +75,11 @@ public class GitTreeItem extends TreeItem<Object> implements NavigationTreeItem{
 			try{
 				Properties stat=command.call();
 				System.out.println(stat);
-			}catch(GitAPIException ex){
+			}catch(Exception ex){
 				Logger.getLogger(GitTreeItem.class.getName()).log(Level.SEVERE,null,ex);
 				Platform.runLater(()->{
 					progressDialog.hide();
-					new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
+					Util.informUser(ex);
 				});
 			}
 		}).start();
@@ -108,9 +106,9 @@ public class GitTreeItem extends TreeItem<Object> implements NavigationTreeItem{
 			clean.setOnAction((e)->gitClean(untracked));
 			node.addColumn(0,untracked,missing,modified,add);
 			node.addColumn(1,added,removed,changed,commit,clean);
-		}catch(GitAPIException|NoWorkTreeException ex){
+		}catch(Exception ex){
 			Logger.getLogger(GitTreeItem.class.getName()).log(Level.SEVERE,null,ex);
-			new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
+			Util.informUser(ex);
 		}
 		return node;
 	}
@@ -126,25 +124,28 @@ public class GitTreeItem extends TreeItem<Object> implements NavigationTreeItem{
 				((ListView<String>)removedView.getContent()).getItems().clear();
 				((ListView<String>)changedView.getContent()).getItems().clear();
 				getChildren().stream().filter((item)->item instanceof LogTreeItem).forEach(
-						(item)->((LocalTreeItem)item).getChildren().add(new CommitTreeItem(commit)));
-			}catch(GitAPIException ex){
+						(item)->((LogTreeItem)item).getChildren().add(new CommitTreeItem(commit)));
+			}catch(Exception ex){
 				Logger.getLogger(Main.class.getName()).log(Level.SEVERE,null,ex);
-				new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
+				Util.informUser(ex);
 			}
 	}
 	private void gitClean(TitledPane untrackedView){
 		try{
 			((Git)getValue()).clean().setIgnore(true).call();
 			((ListView<String>)untrackedView.getContent()).getItems().clear();
-		}catch(GitAPIException ex){
+		}catch(Exception ex){
 			Logger.getLogger(Main.class.getName()).log(Level.SEVERE,null,ex);
-			new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
+			Util.informUser(ex);
 		}
 	}
 	private TitledPane createList(String title,Set<String> data){
 		ListView<String> list=new ListView<>(FXCollections.observableList(data.stream().collect(Collectors.toList())));
 		list.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
-		return new TitledPane(title,list);
+		TitledPane titledPane=new TitledPane(title,list);
+		GridPane.setHgrow(titledPane,Priority.ALWAYS);
+		GridPane.setVgrow(titledPane,Priority.ALWAYS);
+		return titledPane;
 	}
 	private void gitAdd(TitledPane untrackedView,TitledPane modifiedView,TitledPane addedView,TitledPane changedView){
 		Git git=(Git)getValue();
@@ -163,9 +164,9 @@ public class GitTreeItem extends TreeItem<Object> implements NavigationTreeItem{
 				modified.getItems().remove(item);
 				changed.getItems().add(item);
 			}
-		}catch(GitAPIException ex){
+		}catch(Exception ex){
 			Logger.getLogger(GitTreeItem.class.getName()).log(Level.SEVERE,null,ex);
-			new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
+			Util.informUser(ex);
 		}
 	}
 }

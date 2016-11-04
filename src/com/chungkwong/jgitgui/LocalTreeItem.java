@@ -49,9 +49,9 @@ public class LocalTreeItem extends TreeItem<Object> implements NavigationTreeIte
 		if(name.isPresent())
 			try{
 				getChildren().add(new BranchTreeItem(((Git)getValue()).branchCreate().setName(name.get()).call()));
-			}catch(GitAPIException ex){
+			}catch(Exception ex){
 				Logger.getLogger(Main.class.getName()).log(Level.SEVERE,null,ex);
-				new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
+				Util.informUser(ex);
 			}
 	}
 }

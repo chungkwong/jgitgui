@@ -24,8 +24,8 @@ import javafx.geometry.*;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import org.eclipse.jgit.api.*;
-import org.eclipse.jgit.api.errors.*;
 import org.eclipse.jgit.lib.*;
+import org.eclipse.jgit.notes.*;
 import org.eclipse.jgit.revwalk.*;
 import org.eclipse.jgit.treewalk.*;
 /**
@@ -48,23 +48,25 @@ public class CommitTreeItem extends TreeItem<Object> implements NavigationTreeIt
 		revert.setOnAction((e)->gitRevert());
 		MenuItem tag=new MenuItem("Tag");
 		tag.setOnAction((e)->gitTag());
-		return new MenuItem[]{checkout,revert,tag};
+		MenuItem note=new MenuItem("Note");
+		note.setOnAction((e)->gitNote());
+		return new MenuItem[]{checkout,revert,tag,note};
 	}
 	private void gitCheckout(){
 		try{
 			((Git)getParent().getParent().getValue()).checkout().setName(((RevCommit)getValue()).getName()).call();
-		}catch(GitAPIException ex){
+		}catch(Exception ex){
 			Logger.getLogger(Main.class.getName()).log(Level.SEVERE,null,ex);
-			new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
+			Util.informUser(ex);
 		}
 	}
 	private void gitRevert(){
 		try{
 			RevCommit rev=((Git)getParent().getParent().getValue()).revert().include((RevCommit)getValue()).call();
 			getParent().getChildren().add(new CommitTreeItem(rev));
-		}catch(GitAPIException ex){
+		}catch(Exception ex){
 			Logger.getLogger(BranchTreeItem.class.getName()).log(Level.SEVERE,null,ex);
-			new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
+			Util.informUser(ex);
 		}
 	}
 	private void gitTag(){
@@ -77,9 +79,24 @@ public class CommitTreeItem extends TreeItem<Object> implements NavigationTreeIt
 				Ref tag=((Git)getParent().getParent().getValue()).tag().setName(name.get()).setObjectId((RevCommit)getValue()).call();
 				getParent().getParent().getChildren().filtered(item->item instanceof TagListTreeItem).
 					forEach((item)->item.getChildren().add(new TagTreeItem(tag)));
-			}catch(GitAPIException ex){
+			}catch(Exception ex){
 				Logger.getLogger(Main.class.getName()).log(Level.SEVERE,null,ex);
-				new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
+				Util.informUser(ex);
+			}
+	}
+	private void gitNote(){
+		TextInputDialog dialog=new TextInputDialog();
+		dialog.setTitle("Choose the message of the note");
+		dialog.setHeaderText("Enter the message:");
+		Optional<String> msg=dialog.showAndWait();
+		if(msg.isPresent())
+			try{
+				Note note=((Git)getParent().getParent().getValue()).notesAdd().setObjectId((RevCommit)getValue()).setMessage(msg.get()).call();
+				getParent().getParent().getChildren().filtered(item->item instanceof NoteListTreeItem).
+					forEach((item)->item.getChildren().add(new NoteTreeItem(note)));
+			}catch(Exception ex){
+				Logger.getLogger(Main.class.getName()).log(Level.SEVERE,null,ex);
+				Util.informUser(ex);
 			}
 	}
 	@Override
@@ -88,7 +105,13 @@ public class CommitTreeItem extends TreeItem<Object> implements NavigationTreeIt
 		Repository repository=((Git)getParent().getParent().getValue()).getRepository();
 		SplitPane page=new SplitPane();
 		page.setOrientation(Orientation.VERTICAL);
-		TextArea msg=new TextArea(rev.getFullMessage());
+		StringBuilder buf=new StringBuilder();
+		buf.append("Parents:\n");
+		for(int i=0;i<rev.getParentCount();i++)
+			buf.append(rev.getParent(i)).append('\n');
+		buf.append("Message:\n");
+		buf.append(rev.getFullMessage());
+		TextArea msg=new TextArea(buf.toString());
 		msg.setEditable(false);
 		page.getItems().add(msg);
 		SplitPane fileViewer=new SplitPane();
@@ -110,9 +133,9 @@ public class CommitTreeItem extends TreeItem<Object> implements NavigationTreeIt
 					items.addLast(item);*/
 				items.getLast().getChildren().add(item);
 			}
-		}catch(IOException ex){
+		}catch(Exception ex){
 			Logger.getLogger(CommitTreeItem.class.getName()).log(Level.SEVERE,null,ex);
-			new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
+			Util.informUser(ex);
 		}
 		tree.getSelectionModel().selectedItemProperty().addListener(new ChangeListener() {
 			@Override
@@ -125,9 +148,9 @@ public class CommitTreeItem extends TreeItem<Object> implements NavigationTreeIt
 							BufferedReader in=new BufferedReader(new InputStreamReader(obj.openStream(),rev.getEncoding()));
 							content.setText(in.lines().collect(Collectors.joining("\n")));
 						}
-					}catch(IOException ex){
+					}catch(Exception ex){
 						Logger.getLogger(CommitTreeItem.class.getName()).log(Level.SEVERE,null,ex);
-						new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
+						Util.informUser(ex);
 					}
 				}
 			}
@@ -135,7 +158,7 @@ public class CommitTreeItem extends TreeItem<Object> implements NavigationTreeIt
 		fileViewer.getItems().add(tree);
 		fileViewer.getItems().add(content);
 		page.getItems().add(fileViewer);
-		page.setDividerPositions(0.1,0.9);
+		page.setDividerPositions(0.2,0.8);
 		return page;
 	}
 }

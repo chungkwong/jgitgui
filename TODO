@@ -8,23 +8,16 @@ CherryPickCommand 	cherryPick()
 Returns a command object to execute a cherry-pick command
 DescribeCommand 	describe()
 Returns a command object to come up with a short name that describes a commit in terms of the nearest git tag.
-DiffCommand 	diff()
-Returns a command object to execute a diff command
 LsRemoteCommand 	lsRemote()
 Returns a command object to execute a ls-remote command
 NameRevCommand 	nameRev()
 Returns a command object to find human-readable names of revisions.
-AddNoteCommand 	notesAdd()
-Returns a command to add notes to an object
-Returns a command to show notes on an object
 RebaseCommand 	rebase()
 Returns a command object to execute a Rebase command
 ReflogCommand 	reflog()
 Returns a command object to execute a reflog command
 ResetCommand 	reset()
 Returns a command object to execute a reset command
-RmCommand 	rm()
-Returns a command object to execute a rm command
 StashApplyCommand 	stashApply()
 Returns a command object used to apply a stashed commit
 StashCreateCommand 	stashCreate()

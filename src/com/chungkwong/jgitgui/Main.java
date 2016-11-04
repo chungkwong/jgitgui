@@ -20,7 +20,6 @@ import javafx.scene.layout.*;
 import javafx.stage.*;
 import javafx.util.*;
 import org.eclipse.jgit.api.*;
-import org.eclipse.jgit.api.errors.*;
 import org.eclipse.jgit.lib.*;
 import org.eclipse.jgit.revwalk.*;
 import org.eclipse.jgit.transport.*;
@@ -129,8 +128,11 @@ public class Main extends Application{
 		chooser.getChildren().add(createColumnChooser("Refernece",new Callback<TreeTableColumn.CellDataFeatures<Object, String>,ObservableValue<String>>() {
 			@Override
 			public ObservableValue<String> call(TreeTableColumn.CellDataFeatures<Object,String> p){
-				if(p.getValue() instanceof TagTreeItem||p.getValue() instanceof BranchTreeItem){
+				if(p.getValue() instanceof BranchTreeItem){
 					ObjectId id=((Ref)p.getValue().getValue()).getLeaf().getObjectId();
+					return new ReadOnlyObjectWrapper<>(id==null?"":id.getName());
+				}else if(p.getValue() instanceof TagTreeItem){
+					ObjectId id=((Ref)p.getValue().getValue()).getTarget().getLeaf().getObjectId();
 					return new ReadOnlyObjectWrapper<>(id==null?"":id.getName());
 				}else
 					return new ReadOnlyObjectWrapper<>("");
@@ -178,9 +180,9 @@ public class Main extends Application{
 			File dir=dirChooser.showDialog(null);
 			if(dir!=null)
 				navigationRoot.getChildren().add(new GitTreeItem(Git.open(dir)));
-		}catch(IOException ex){
+		}catch(Exception ex){
 			Logger.getLogger(Main.class.getName()).log(Level.SEVERE,null,ex);
-			new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
+			Util.informUser(ex);
 		}
 	}
 	private void gitInit(){
@@ -188,9 +190,9 @@ public class Main extends Application{
 			File dir=dirChooser.showDialog(null);
 			if(dir!=null)
 				navigationRoot.getChildren().add(new GitTreeItem(Git.init().setDirectory(dir).call()));
-		}catch(GitAPIException ex){
+		}catch(Exception ex){
 			Logger.getLogger(Main.class.getName()).log(Level.SEVERE,null,ex);
-			new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
+			Util.informUser(ex);
 		}
 	}
 	private void gitClone(){
@@ -208,11 +210,11 @@ public class Main extends Application{
 						Platform.runLater(()->{
 							navigationRoot.getChildren().add(new GitTreeItem(repository));
 						});
-					}catch(GitAPIException ex){
+					}catch(Exception ex){
 						Logger.getLogger(GitTreeItem.class.getName()).log(Level.SEVERE,null,ex);
 						Platform.runLater(()->{
 							progressDialog.hide();
-							new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
+							Util.informUser(ex);
 						});
 					}
 				}).start();

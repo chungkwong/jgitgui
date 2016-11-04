@@ -9,7 +9,6 @@ import java.util.logging.*;
 import javafx.scene.control.*;
 import org.eclipse.jgit.api.*;
 import org.eclipse.jgit.api.errors.*;
-import org.eclipse.jgit.errors.*;
 import org.eclipse.jgit.lib.*;
 import org.eclipse.jgit.revwalk.*;
 /**
@@ -48,17 +47,17 @@ public class BranchTreeItem extends TreeItem<Object> implements NavigationTreeIt
 			}else{
 				new Alert(Alert.AlertType.INFORMATION,result.getMergeStatus().toString(),ButtonType.CLOSE).show();
 			}
-		}catch(GitAPIException|MissingObjectException|IncorrectObjectTypeException ex){
+		}catch(Exception ex){
 			Logger.getLogger(Main.class.getName()).log(Level.SEVERE,null,ex);
-			new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
+			Util.informUser(ex);
 		}
 	}
 	private void gitCheckout(){
 		try{
 			((Git)getParent().getParent().getValue()).checkout().setName(((Ref)getValue()).getName()).call();
-		}catch(GitAPIException ex){
+		}catch(Exception ex){
 			Logger.getLogger(Main.class.getName()).log(Level.SEVERE,null,ex);
-			new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
+			Util.informUser(ex);
 		}
 	}
 	private void gitBranchRename(){
@@ -71,16 +70,16 @@ public class BranchTreeItem extends TreeItem<Object> implements NavigationTreeIt
 				setValue(((Git)getParent().getParent().getValue()).branchRename().setOldName(((Ref)getValue()).getName()).setNewName(name.get()).call());
 			}catch(GitAPIException ex){
 				Logger.getLogger(Main.class.getName()).log(Level.SEVERE,null,ex);
-				new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
+				Util.informUser(ex);
 			}
 	}
 	private void gitBranchRemove(){
 		try{
 			((Git)getParent().getParent().getValue()).branchDelete().setBranchNames(((Ref)getValue()).getName()).call();
 			getParent().getChildren().remove(this);
-		}catch(GitAPIException ex){
+		}catch(Exception ex){
 			Logger.getLogger(Main.class.getName()).log(Level.SEVERE,null,ex);
-			new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
+			Util.informUser(ex);
 		}
 	}
 	private void gitRevert(){
@@ -88,9 +87,9 @@ public class BranchTreeItem extends TreeItem<Object> implements NavigationTreeIt
 			RevCommit rev=((Git)getParent().getParent().getValue()).revert().include((Ref)getValue()).call();
 			getParent().getParent().getChildren().filtered(item->item instanceof LocalTreeItem).
 					forEach((item)->item.getChildren().add(new CommitTreeItem(rev)));
-		}catch(GitAPIException ex){
+		}catch(Exception ex){
 			Logger.getLogger(BranchTreeItem.class.getName()).log(Level.SEVERE,null,ex);
-			new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
+			Util.informUser(ex);
 		}
 	}
 }

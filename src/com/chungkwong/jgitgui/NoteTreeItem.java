@@ -20,10 +20,10 @@ import java.util.logging.*;
 import javafx.scene.*;
 import javafx.scene.control.*;
 import org.eclipse.jgit.api.*;
-import org.eclipse.jgit.api.errors.*;
 import org.eclipse.jgit.errors.*;
 import org.eclipse.jgit.notes.*;
 import org.eclipse.jgit.revwalk.*;
+import org.eclipse.jgit.revwalk.filter.*;
 /**
  *
  * @author Chan Chung Kwong <1m02math@126.com>
@@ -44,12 +44,21 @@ public class NoteTreeItem extends TreeItem<Object> implements NavigationTreeItem
 	}
 	private void gitNoteRemove(){
 		try{
-			RevCommit rev=((Git)getParent().getParent().getValue()).log().addRange((Note)getValue(),(Note)getValue()).call().iterator().next();
+			RevCommit rev=((Git)getParent().getParent().getValue()).log().setRevFilter(new RevFilter() {
+				@Override
+				public boolean include(RevWalk walker,RevCommit cmit) throws StopWalkException,MissingObjectException,IncorrectObjectTypeException,IOException{
+					return cmit.getName().equals(NoteTreeItem.this.toString());
+				}
+				@Override
+				public RevFilter clone(){
+					return this;
+				}
+			}).call().iterator().next();
 			((Git)getParent().getParent().getValue()).notesRemove().setObjectId(rev).call();
-			getParent().getChildren().remove(this);
-		}catch(GitAPIException|MissingObjectException|IncorrectObjectTypeException ex){
+					getParent().getChildren().remove(this);
+		}catch(Exception ex){
 			Logger.getLogger(Main.class.getName()).log(Level.SEVERE,null,ex);
-			new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
+			Util.informUser(ex);
 		}
 	}
 	@Override
@@ -59,9 +68,9 @@ public class NoteTreeItem extends TreeItem<Object> implements NavigationTreeItem
 		try{
 			byte[] bytes=((Git)getParent().getParent().getValue()).getRepository().open(((Note)getValue()).getData()).getBytes();
 			area.setText(new String(bytes,"UTF-8"));
-		}catch(IOException ex){
+		}catch(Exception ex){
 			Logger.getLogger(NoteTreeItem.class.getName()).log(Level.SEVERE,null,ex);
-			new Alert(Alert.AlertType.ERROR,ex.getLocalizedMessage(),ButtonType.CLOSE).show();
+			Util.informUser(ex);
 		}
 		return area;
 	}
