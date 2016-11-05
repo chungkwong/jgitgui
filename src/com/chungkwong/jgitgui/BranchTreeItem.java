@@ -1,7 +1,18 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * Copyright (C) 2016 Chan Chung Kwong <1m02math@126.com>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package com.chungkwong.jgitgui;
 import java.util.*;
@@ -25,15 +36,15 @@ public class BranchTreeItem extends TreeItem<Object> implements NavigationTreeIt
 	}
 	@Override
 	public MenuItem[] getContextMenuItems(){
-		MenuItem checkout=new MenuItem("Checkout");
+		MenuItem checkout=new MenuItem(java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("CHECKOUT"));
 		checkout.setOnAction((e)->gitCheckout());
-		MenuItem revert=new MenuItem("Revert");
+		MenuItem revert=new MenuItem(java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("REVERT"));
 		revert.setOnAction((e)->gitRevert());
-		MenuItem mergeBranch=new MenuItem("Merge");
+		MenuItem mergeBranch=new MenuItem(java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("MERGE"));
 		mergeBranch.setOnAction((e)->gitMerge());
-		MenuItem rmBranch=new MenuItem("Remove branch");
+		MenuItem rmBranch=new MenuItem(java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("REMOVE BRANCH"));
 		rmBranch.setOnAction((e)->gitBranchRemove());
-		MenuItem renameBranch=new MenuItem("Rename branch");
+		MenuItem renameBranch=new MenuItem(java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("RENAME BRANCH"));
 		renameBranch.setOnAction((e)->gitBranchRename());
 		return new MenuItem[]{checkout,revert,mergeBranch,rmBranch,renameBranch};
 	}
@@ -62,8 +73,8 @@ public class BranchTreeItem extends TreeItem<Object> implements NavigationTreeIt
 	}
 	private void gitBranchRename(){
 		TextInputDialog branchDialog=new TextInputDialog();
-		branchDialog.setTitle("Choose a new name for the branch");
-		branchDialog.setHeaderText("Enter the new name of the branch:");
+		branchDialog.setTitle(java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("CHOOSE A NEW NAME FOR THE BRANCH"));
+		branchDialog.setHeaderText(java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("ENTER THE NEW NAME OF THE BRANCH:"));
 		Optional<String> name=branchDialog.showAndWait();
 		if(name.isPresent())
 			try{

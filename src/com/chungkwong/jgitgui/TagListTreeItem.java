@@ -25,13 +25,13 @@ import org.eclipse.jgit.lib.*;
  */
 public class TagListTreeItem extends TreeItem<Object> implements NavigationTreeItem{
 	public TagListTreeItem(Git git) throws GitAPIException{
-		super("Tag");
+		super(java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("TAG"));
 		for(Ref ref:git.tagList().call())
 			getChildren().add(new TagTreeItem(ref));
 	}
 	@Override
 	public String toString(){
-		return "Tag";
+		return java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("TAG");
 	}
 	@Override
 	public MenuItem[] getContextMenuItems(){

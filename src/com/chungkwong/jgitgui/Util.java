@@ -22,7 +22,7 @@ import javafx.scene.control.*;
  */
 public class Util{
 	public static void informUser(Throwable ex){
-		Alert dialog=new Alert(Alert.AlertType.ERROR,"Something go wrong",ButtonType.CLOSE);
+		Alert dialog=new Alert(Alert.AlertType.ERROR,java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("SOMETHING GO WRONG"),ButtonType.CLOSE);
 		dialog.getDialogPane().setContent(new Label(ex.getLocalizedMessage()));
 		dialog.show();
 	}

@@ -24,6 +24,8 @@ import javafx.geometry.*;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import org.eclipse.jgit.api.*;
+import org.eclipse.jgit.api.errors.*;
+import org.eclipse.jgit.errors.*;
 import org.eclipse.jgit.lib.*;
 import org.eclipse.jgit.notes.*;
 import org.eclipse.jgit.revwalk.*;
@@ -35,20 +37,28 @@ import org.eclipse.jgit.treewalk.*;
 public class CommitTreeItem extends TreeItem<Object> implements NavigationTreeItem{
 	public CommitTreeItem(RevCommit rev){
 		super(rev);
+		if(rev==null)
+			throw new NullPointerException();
 	}
 	@Override
 	public String toString(){
+		try{
+			ObjectId id=((RevCommit)getValue()).getId();
+			return ((Git)getParent().getParent().getValue()).nameRev().add(id).call().get(id);
+		}catch(MissingObjectException|JGitInternalException|GitAPIException ex){
+			Logger.getLogger(CommitTreeItem.class.getName()).log(Level.SEVERE,null,ex);
+		}
 		return ((RevCommit)getValue()).getName();
 	}
 	@Override
 	public MenuItem[] getContextMenuItems(){
-		MenuItem checkout=new MenuItem("Checkout");
+		MenuItem checkout=new MenuItem(java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("CHECKOUT"));
 		checkout.setOnAction((e)->gitCheckout());
-		MenuItem revert=new MenuItem("Revert");
+		MenuItem revert=new MenuItem(java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("REVERT"));
 		revert.setOnAction((e)->gitRevert());
-		MenuItem tag=new MenuItem("Tag");
+		MenuItem tag=new MenuItem(java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("TAG"));
 		tag.setOnAction((e)->gitTag());
-		MenuItem note=new MenuItem("Note");
+		MenuItem note=new MenuItem(java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("NOTE"));
 		note.setOnAction((e)->gitNote());
 		return new MenuItem[]{checkout,revert,tag,note};
 	}
@@ -71,8 +81,8 @@ public class CommitTreeItem extends TreeItem<Object> implements NavigationTreeIt
 	}
 	private void gitTag(){
 		TextInputDialog dialog=new TextInputDialog();
-		dialog.setTitle("Choose name for the tag");
-		dialog.setHeaderText("Enter the name of the tag:");
+		dialog.setTitle(java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("CHOOSE NAME FOR THE TAG"));
+		dialog.setHeaderText(java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("ENTER THE NAME OF THE TAG:"));
 		Optional<String> name=dialog.showAndWait();
 		if(name.isPresent())
 			try{
@@ -86,8 +96,8 @@ public class CommitTreeItem extends TreeItem<Object> implements NavigationTreeIt
 	}
 	private void gitNote(){
 		TextInputDialog dialog=new TextInputDialog();
-		dialog.setTitle("Choose the message of the note");
-		dialog.setHeaderText("Enter the message:");
+		dialog.setTitle(java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("CHOOSE THE MESSAGE OF THE NOTE"));
+		dialog.setHeaderText(java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("ENTER THE MESSAGE:"));
 		Optional<String> msg=dialog.showAndWait();
 		if(msg.isPresent())
 			try{
@@ -106,10 +116,10 @@ public class CommitTreeItem extends TreeItem<Object> implements NavigationTreeIt
 		SplitPane page=new SplitPane();
 		page.setOrientation(Orientation.VERTICAL);
 		StringBuilder buf=new StringBuilder();
-		buf.append("Parents:\n");
+		buf.append(java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("PARENTS:"));
 		for(int i=0;i<rev.getParentCount();i++)
 			buf.append(rev.getParent(i)).append('\n');
-		buf.append("Message:\n");
+		buf.append(java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("MESSAGE:"));
 		buf.append(rev.getFullMessage());
 		TextArea msg=new TextArea(buf.toString());
 		msg.setEditable(false);

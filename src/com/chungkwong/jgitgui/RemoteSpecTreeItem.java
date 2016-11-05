@@ -35,7 +35,7 @@ public class RemoteSpecTreeItem extends TreeItem implements NavigationTreeItem{
 		return ((RefSpec)getValue()).getSource()+"->"+getType()+((RefSpec)getValue()).getDestination();
 	}
 	private String getType(){
-		return fetch?"(Fetch)":"(Push)";
+		return fetch?java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("(FETCH)"):java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("(PUSH)");
 	}
 	@Override
 	public MenuItem[] getContextMenuItems(){

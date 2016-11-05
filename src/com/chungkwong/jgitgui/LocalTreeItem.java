@@ -27,28 +27,28 @@ import org.eclipse.jgit.lib.*;
  */
 public class LocalTreeItem extends TreeItem<Object> implements NavigationTreeItem{
 	public LocalTreeItem(Git git) throws GitAPIException{
-		super("Local branch");
+		super(java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("LOCAL BRANCH"));
 		for(Ref ref:git.branchList().call())
 			getChildren().add(new BranchTreeItem(ref));
 	}
 	@Override
 	public String toString(){
-		return "Local branch";
+		return java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("LOCAL BRANCH");
 	}
 	@Override
 	public MenuItem[] getContextMenuItems(){
-		MenuItem branch=new MenuItem("New branch");
+		MenuItem branch=new MenuItem(java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("NEW BRANCH"));
 		branch.setOnAction((e)->gitBranchNew());
 		return new MenuItem[]{branch};
 	}
 	private void gitBranchNew(){
 		TextInputDialog branchDialog=new TextInputDialog();
-		branchDialog.setTitle("Choose a name for the new branch");
-		branchDialog.setHeaderText("Enter the name of the new branch:");
+		branchDialog.setTitle(java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("CHOOSE A NAME FOR THE NEW BRANCH"));
+		branchDialog.setHeaderText(java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("ENTER THE NAME OF THE NEW BRANCH:"));
 		Optional<String> name=branchDialog.showAndWait();
 		if(name.isPresent())
 			try{
-				getChildren().add(new BranchTreeItem(((Git)getValue()).branchCreate().setName(name.get()).call()));
+				getChildren().add(new BranchTreeItem(((Git)getParent().getValue()).branchCreate().setName(name.get()).call()));
 			}catch(Exception ex){
 				Logger.getLogger(Main.class.getName()).log(Level.SEVERE,null,ex);
 				Util.informUser(ex);

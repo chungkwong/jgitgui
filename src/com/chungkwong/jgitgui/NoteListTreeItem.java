@@ -25,13 +25,13 @@ import org.eclipse.jgit.notes.*;
  */
 public class NoteListTreeItem extends TreeItem<Object> implements NavigationTreeItem{
 	public NoteListTreeItem(Git git) throws GitAPIException{
-		super("Note");
+		super(java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("NOTE"));
 		for(Note note:git.notesList().call())
 			getChildren().add(new NoteTreeItem(note));
 	}
 	@Override
 	public String toString(){
-		return "Note";
+		return java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("NOTE");
 	}
 	@Override
 	public MenuItem[] getContextMenuItems(){

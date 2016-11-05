@@ -38,7 +38,7 @@ public class NoteTreeItem extends TreeItem<Object> implements NavigationTreeItem
 	}
 	@Override
 	public MenuItem[] getContextMenuItems(){
-		MenuItem remove=new MenuItem("Remove note");
+		MenuItem remove=new MenuItem(java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("REMOVE NOTE"));
 		remove.setOnAction((e)->gitNoteRemove());
 		return new MenuItem[]{remove};
 	}

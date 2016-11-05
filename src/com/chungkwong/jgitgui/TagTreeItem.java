@@ -33,7 +33,7 @@ public class TagTreeItem extends TreeItem<Object> implements NavigationTreeItem{
 	}
 	@Override
 	public MenuItem[] getContextMenuItems(){
-		MenuItem removeTag=new MenuItem("Remove tag");
+		MenuItem removeTag=new MenuItem(java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("REMOVE TAG"));
 		removeTag.setOnAction((e)->gitTagRemove());
 		return new MenuItem[]{removeTag};
 	}

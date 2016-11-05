@@ -1,7 +1,18 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * Copyright (C) 2016 Chan Chung Kwong <1m02math@126.com>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package com.chungkwong.jgitgui;
 import java.util.*;
@@ -13,6 +24,7 @@ import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import org.eclipse.jgit.api.*;
+import org.eclipse.jgit.lib.*;
 import org.eclipse.jgit.revwalk.*;
 import org.eclipse.jgit.transport.*;
 /**
@@ -43,19 +55,21 @@ public class GitTreeItem extends TreeItem<Object> implements NavigationTreeItem{
 	}
 	@Override
 	public MenuItem[] getContextMenuItems(){
-		MenuItem remote=new MenuItem("New remote");
+		MenuItem remote=new MenuItem(java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("NEW REMOTE"));
 		remote.setOnAction((e)->gitRemoteNew());
-		MenuItem gc=new MenuItem("Collect gargage");
+		MenuItem gc=new MenuItem(java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("COLLECT GARGAGE"));
 		gc.setOnAction((e)->gitGC());
-		return new MenuItem[]{remote,gc};
+		MenuItem conf=new MenuItem(java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("CONFIGURE"));
+		conf.setOnAction((e)->gitConfig());
+		return new MenuItem[]{remote,gc,conf};
 	}
 	private void gitRemoteNew(){
 		TextInputDialog dialog=new TextInputDialog();
-		dialog.setTitle("Choose a name for the new remote configure");
-		dialog.setHeaderText("Enter the name of the new remote configure:");
+		dialog.setTitle(java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("CHOOSE A NAME FOR THE NEW REMOTE CONFIGURE"));
+		dialog.setHeaderText(java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("ENTER THE NAME OF THE NEW REMOTE CONFIGURE:"));
 		Optional<String> name=dialog.showAndWait();
-		dialog.setTitle("Choose a URI for the new remote configure");
-		dialog.setHeaderText("Enter the URI of the new remote configure:");
+		dialog.setTitle(java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("CHOOSE A URI FOR THE NEW REMOTE CONFIGURE"));
+		dialog.setHeaderText(java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("ENTER THE URI OF THE NEW REMOTE CONFIGURE:"));
 		Optional<String> uri=dialog.showAndWait();
 		if(name.isPresent())
 			try{
@@ -68,8 +82,26 @@ public class GitTreeItem extends TreeItem<Object> implements NavigationTreeItem{
 				Util.informUser(ex);
 			}
 	}
+	private void gitConfig(){
+		try{
+			StoredConfig config=((Git)getValue()).getRepository().getConfig();
+			Dialog dialog=new Dialog();
+			dialog.setTitle(java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("CONFIGURE"));
+			TextArea area=new TextArea(config.toText());
+			dialog.getDialogPane().setContent(area);
+			dialog.getDialogPane().getButtonTypes().addAll(ButtonType.CANCEL,ButtonType.APPLY);
+			dialog.showAndWait();
+			if(dialog.getResult().equals(ButtonType.APPLY)){
+				config.fromText(area.getText());
+				config.save();
+			}
+		}catch(Exception ex){
+			Logger.getLogger(GitTreeItem.class.getName()).log(Level.SEVERE,null,ex);
+			Util.informUser(ex);
+		}
+	}
 	private void gitGC(){
-		ProgressDialog progressDialog=new ProgressDialog("GC");
+		ProgressDialog progressDialog=new ProgressDialog(java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("GC"));
 		GarbageCollectCommand command=((Git)getValue()).gc().setProgressMonitor(progressDialog);
 		new Thread(()->{
 			try{
@@ -92,17 +124,17 @@ public class GitTreeItem extends TreeItem<Object> implements NavigationTreeItem{
 			Set<String> untrackedSet=new HashSet<>(status.getUntrackedFolders());
 			untrackedSet.addAll(status.getUntracked());
 			untrackedSet.removeAll(status.getIgnoredNotInIndex());
-			TitledPane untracked=createList("Untracked File",untrackedSet);
-			TitledPane missing=createList("Missing",status.getMissing());
-			TitledPane modified=createList("Modified",status.getModified());
-			TitledPane added=createList("Added",status.getAdded());
-			TitledPane removed=createList("Removed",status.getRemoved());
-			TitledPane changed=createList("Changed",status.getChanged());
-			Button add=new Button("Add");
+			TitledPane untracked=createList(java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("UNTRACKED FILE"),untrackedSet);
+			TitledPane missing=createList(java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("MISSING"),status.getMissing());
+			TitledPane modified=createList(java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("MODIFIED"),status.getModified());
+			TitledPane added=createList(java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("ADDED"),status.getAdded());
+			TitledPane removed=createList(java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("REMOVED"),status.getRemoved());
+			TitledPane changed=createList(java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("CHANGED"),status.getChanged());
+			Button add=new Button(java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("ADD"));
 			add.setOnAction((e)->gitAdd(untracked,modified,added,changed));
-			Button commit=new Button("Commit");
+			Button commit=new Button(java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("COMMIT"));
 			commit.setOnAction((e)->gitCommit(added,removed,changed));
-			Button clean=new Button("Clean");
+			Button clean=new Button(java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("CLEAN"));
 			clean.setOnAction((e)->gitClean(untracked));
 			node.addColumn(0,untracked,missing,modified,add);
 			node.addColumn(1,added,removed,changed,commit,clean);
@@ -114,8 +146,8 @@ public class GitTreeItem extends TreeItem<Object> implements NavigationTreeItem{
 	}
 	private void gitCommit(TitledPane addedView,TitledPane removedView,TitledPane changedView){
 		TextInputDialog dialog=new TextInputDialog();
-		dialog.setTitle("Choose a message for the commit");
-		dialog.setHeaderText("Enter the message:");
+		dialog.setTitle(java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("CHOOSE A MESSAGE FOR THE COMMIT"));
+		dialog.setHeaderText(java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("ENTER THE MESSAGE:"));
 		Optional<String> msg=dialog.showAndWait();
 		if(msg.isPresent())
 			try{

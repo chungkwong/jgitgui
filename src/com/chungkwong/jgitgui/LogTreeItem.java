@@ -36,32 +36,21 @@ import org.eclipse.jgit.treewalk.*;
  */
 public class LogTreeItem extends TreeItem<Object> implements NavigationTreeItem{
 	public LogTreeItem(Git git) throws GitAPIException{
-		super("Commit");
-		for(RevCommit rev:git.log().call())
-			getChildren().add(new CommitTreeItem(rev));
+		super(java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("COMMIT"));
+		try{
+			for(RevCommit rev:git.log().call()){
+				getChildren().add(new CommitTreeItem(rev));
+			}
+		}catch(NoHeadException ex){
+		}
 	}
 	@Override
 	public String toString(){
-		return "Commit";
+		return java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("COMMIT");
 	}
 	@Override
 	public MenuItem[] getContextMenuItems(){
-		MenuItem commit=new MenuItem("New branch");
-		commit.setOnAction((e)->gitCommit());
-		return new MenuItem[]{commit};
-	}
-	private void gitCommit(){
-		TextInputDialog branchDialog=new TextInputDialog();
-		branchDialog.setTitle("Add a commit message");
-		branchDialog.setHeaderText("Enter the commit message:");
-		Optional<String> msg=branchDialog.showAndWait();
-		if(msg.isPresent())
-			try{
-				getChildren().add(new CommitTreeItem(((Git)getParent().getValue()).commit().setMessage(msg.get()).call()));
-			}catch(Exception ex){
-				Logger.getLogger(Main.class.getName()).log(Level.SEVERE,null,ex);
-				Util.informUser(ex);
-			}
+		return new MenuItem[0];
 	}
 	private RevCommit toRevCommit(ObjectId id) throws MissingObjectException, IncorrectObjectTypeException, GitAPIException{
 		return ((Git)getParent().getValue()).log().addRange(id,id).call().iterator().next();
@@ -71,8 +60,8 @@ public class LogTreeItem extends TreeItem<Object> implements NavigationTreeItem{
 		GridPane page=new GridPane();
 		TextField oldSrc=new TextField();
 		TextField newSrc=new TextField();
-		CheckBox detailed=new CheckBox("Detailed");
-		Button ok=new Button("Diff");
+		CheckBox detailed=new CheckBox(java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("DETAILED"));
+		Button ok=new Button(java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString("DIFF"));
 		TextArea diff=new TextArea();
 		diff.setEditable(false);
 		Git git=((Git)getParent().getValue());
@@ -116,15 +105,15 @@ public class LogTreeItem extends TreeItem<Object> implements NavigationTreeItem{
 	private static String toString(DiffEntry entry){
 		switch(entry.getChangeType()){
 			case ADD:
-				return entry.getNewPath()+" added";
+				return entry.getNewPath()+java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString(" ADDED");
 			case COPY:
-				return entry.getOldPath()+" copied to "+entry.getNewPath();
+				return entry.getOldPath()+java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString(" COPIED TO ")+entry.getNewPath();
 			case DELETE:
-				return entry.getOldPath()+" removed";
+				return entry.getOldPath()+java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString(" REMOVED");
 			case MODIFY:
-				return entry.getOldPath()+" modified";
+				return entry.getOldPath()+java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString(" MODIFIED");
 			case RENAME:
-				return entry.getOldPath()+" renamed to "+entry.getNewPath();
+				return entry.getOldPath()+java.util.ResourceBundle.getBundle("com/chungkwong/jgitgui/text").getString(" RENAMED TO ")+entry.getNewPath();
 			default:
 				return "";
 		}

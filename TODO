@@ -2,16 +2,10 @@ ApplyCommand 	apply()
 Returns a command object to execute a apply command
 ArchiveCommand 	archive()
 Returns a command to create an archive from a tree
-BlameCommand 	blame()
-Returns a command object to execute a blame command
 CherryPickCommand 	cherryPick()
 Returns a command object to execute a cherry-pick command
-DescribeCommand 	describe()
-Returns a command object to come up with a short name that describes a commit in terms of the nearest git tag.
 LsRemoteCommand 	lsRemote()
 Returns a command object to execute a ls-remote command
-NameRevCommand 	nameRev()
-Returns a command object to find human-readable names of revisions.
 RebaseCommand 	rebase()
 Returns a command object to execute a Rebase command
 ReflogCommand 	reflog()
@@ -24,8 +18,6 @@ StashCreateCommand 	stashCreate()
 Returns a command object used to create a stashed commit
 StashDropCommand 	stashDrop()
 Returns a command object used to drop a stashed commit
-StashListCommand 	stashList()
-Returns a command object used to list stashed commits
 SubmoduleAddCommand 	submoduleAdd()
 Returns a command object to execute a submodule add command
 SubmoduleInitCommand 	submoduleInit()
