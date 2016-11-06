@@ -1,19 +1,22 @@
 JGitGUI is a simple graphical client for git based on JGit(and do not rely on the offical git client).
+JGitGUI is currently available in chinese and english.
 
 Pros
   - JGitGUI can run on both windows and *nix(including Mac OS X) since it is pure Java
+  - It is quite small, about 3MB including all dependency except JRE
   - May be more user friendly to people outside *nix world somehow
 
 Cons
   - Not effective for large repository
   - Not all functionality of git is supported
+  - It is too young
 
 Supported command
-  - rm, add, clean, status, commit
+  - init, rm, add, clean, status, commit
   - blame, log, diff
-  - branch, checkout, merge
+  - branch, checkout, revert, merge
   - tag, note
-  - remote, fetch, pull, push
+  - remote, clone, fetch, pull, push
 
 **JGitGUI used Java FX toolkit. JRE (version 8 or later) on Windows plaform already
 shiped with that. On *nix, you may need to install OpenJFX package in order to get
